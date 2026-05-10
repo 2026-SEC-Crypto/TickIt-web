@@ -5,3 +5,4 @@ app/db/store/*
 vendor/
 config/secrets.yml
 db/local/*.db
+.env

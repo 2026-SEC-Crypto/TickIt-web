@@ -27,6 +27,7 @@ module TickIt
     end
 
     route do |r|
+      r.redirect_http_to_https if Api.environment == :production
       response['Content-Type'] = 'application/json'
       puts "👉 [DEBUG] 伺服器收到請求！目前看見的網址是：#{r.path}"
 
@@ -41,16 +42,14 @@ module TickIt
           { message: 'TickIt API is up and running!' }.to_json
         end
 
-        
-          r.on 'v1' do
-            # 將請求分發給對應的子檔案處理
-            r.on('events')      { r.route 'events' }
-            r.on('attendances') { r.route 'attendances' }
-            r.on('students')    { r.route 'students' }
-            r.on('accounts')    { r.route 'accounts' }
-            r.on('auth')        { r.route 'auth' }
-          end
-        
+        r.on 'v1' do
+          # 將請求分發給對應的子檔案處理
+          r.on('events')      { r.route 'events' }
+          r.on('attendances') { r.route 'attendances' }
+          r.on('students')    { r.route 'students' }
+          r.on('accounts')    { r.route 'accounts' }
+          r.on('auth')        { r.route 'auth' }
+        end
 
         response.status = 404
         { error: 'Route not found' }.to_json

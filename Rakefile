@@ -125,4 +125,55 @@ namespace :db do
       puts "Tables: #{@app.DB.tables.join(', ')}"
     end
   end
+  desc 'Bootstrap an admin: create-or-find EMAIL, grant admin role'
+  task bootstrap_admin: %i[load load_models] do
+    require 'digest'
+
+    # 1. Read the EMAIL environment variable
+    email = ENV.fetch('EMAIL', nil).to_s.strip
+    abort '❌ Error: Please provide EMAIL=<email>' if email.empty?
+
+    # 2. Find the account using the Email Hash (PII Confidentiality)
+    email_hash = Digest::SHA256.hexdigest(email)
+    account = TickIt::Account.first(email_hash: email_hash)
+
+    if account.nil?
+      password = ENV.fetch('PASSWORD', 'admin_password_123')
+      # Model hooks handle secure_email encryption and email_hash generation
+      account = TickIt::Account.create(email: email, password: password)
+      puts "✅ Successfully created new secure account (id=#{account.id})"
+    else
+      puts 'ℹ️ Found existing account for this email hash'
+    end
+
+    # 3. Grant admin privileges (Based on lecture slides 22-23)
+    # This section ensures the role exists and assigns it via system_roles
+    begin
+      # Ensure the 'Role' constant is defined before using it
+      if Object.const_defined?('TickIt::Role')
+        admin_role = TickIt::Role.first(name: 'admin') || TickIt::Role.create(name: 'admin')
+
+        # Check for system_roles association as per lecture notes
+        if account.respond_to?(:add_system_role)
+          if account.system_roles_dataset.where(name: 'admin').any?
+            puts '👑 Account is already an admin!'
+          else
+            account.add_system_role(admin_role)
+            puts "👑 Successfully granted 'admin' role!"
+          end
+        else
+          # Fallback to standard many-to-many 'add_role'
+          account.add_role(admin_role) unless account.roles.include?(admin_role)
+          puts "👑 Successfully granted 'admin' role via add_role!"
+        end
+      else
+        # Fallback if no Role model exists: check for a role column on Account
+        account.update(role: 'admin') if account.respond_to?(:role=)
+        puts "👑 Successfully updated account role to 'admin' (Column fallback)"
+      end
+    rescue StandardError => e
+      puts "⚠️ Warning: Could not assign role automatically: #{e.message}"
+      puts 'Manual check required: Does your database have a roles table or a role column?'
+    end
+  end
 end

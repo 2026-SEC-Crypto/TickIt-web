@@ -9,7 +9,14 @@ require_relative '../../services/session_service'
 require_relative '../../services/authorization_service'
 require_relative '../../../config/environments'
 require_relative '../../../lib/security_log'
+require_relative '../../services/create_account'
+require 'dotenv'
+require_relative '../../lib/secure_message'
+require_relative '../../lib/secure_session'
 
+Dotenv.load # This loads the variables from your .env file into ENV
+
+SecureMessage.setup(ENV.fetch('MSG_KEY'))
 module TickIt
   # Web controller for handling user-facing pages and authentication
   # Uses Roda framework with Slim templating engine and secure HTTP-only cookie sessions
@@ -30,6 +37,7 @@ module TickIt
   #
   class Web < Roda
     plugin :render, engine: 'slim', views: 'app/views'
+
     # Configure sessions with:
     # - secret: Encryption key for session data (set from env or default to dev key)
     # - HTTP-only cookies: Prevents JavaScript access to session cookies (XSS protection)
@@ -42,6 +50,12 @@ module TickIt
     # Stores messages in encrypted session and automatically clears after one request
     plugin :flash
     plugin :halt
+    plugin :environments
+    # plugin :route_csrf, csrf_failure: :halt
+    configure :production do
+      plugin :redirect_http_to_https
+      plugin :hsts
+    end
 
     # Helper to render views with layout
     # All views are rendered with the layout/layout.slim template which includes navigation
@@ -84,9 +98,20 @@ module TickIt
     end
 
     route do |r|
+      # r.check_csrf
       # Set current user for all requests (for layout navigation)
       # Retrieves account from session if logged in, otherwise nil
-      @current_user = SessionService.current_user(session)
+      r.redirect_http_to_https if Web.environment == :production
+      # 1. Wrap the Roda session with our SecureSession layer
+      @secure_session = SecureSession.new(session)
+
+      # 2. Use @secure_session.get instead of reading raw session
+      # This will automatically decrypt the data retrieved from the cookie
+      account_id = @secure_session.get(:account_id)
+      @current_user = account_id ? TickIt::Account.find(id: account_id) : nil
+
+      @flash = flash
+      make_authorization_available
       # Make flash messages available to all views
       @flash = flash
       # Make authorization variables available to all views for conditional rendering
@@ -106,7 +131,7 @@ module TickIt
       # Displays login form; redirects to account page if already logged in
       r.on 'login' do
         r.get do
-          if session && session[:account_id]
+          if @secure_session.get(:account_id)
             r.redirect '/account'
           else
             render_with_layout 'sessions/login'
@@ -118,6 +143,7 @@ module TickIt
         # On success: Creates session with user data and redirects to account page
         # On failure: Sets flash error and redisplays form with appropriate status code
         r.post do
+          puts '--- DEBUG: Login POST request received ---'
           email = r.params['email']
           password = r.params['password']
 
@@ -127,15 +153,33 @@ module TickIt
             return render_with_layout 'sessions/login'
           end
 
+          # begin
+          #   api_result = TickIt::CreateAccount.new.call(
+          #     email: email,
+          #     username: username,
+          #     password: password
+          #   )
+          # rescue TickIt::CreateAccount::InvalidAccount => e
+          #   response.status = 400
+          #   flash['error'] = "Registration failed: #{e.message}"
+          #   return render_with_layout 'sessions/register'
+          # rescue StandardError => e
+          #   response.status = 500
+          #   flash['error'] = 'Server error: Please try again later'
+          #   return render_with_layout 'sessions/register'
+          # end
+
           # Call AccountService to authenticate user with encrypted password verification
           account = AccountService.authenticate(email:, password:)
-
+          puts "--- DEBUG: Authentication result: #{account.inspect} ---"
           if account
+            puts "--- DEBUG: Login SUCCESS for #{account.email} ---"
             # Create secure session with user information
             # Session data is encrypted and stored in HTTP-only cookie
-            session[:account_id] = account.id
-            session[:email] = account.email
-            session[:role] = account.role
+            @secure_session.set(:account_id, account.id)
+            @secure_session.set(:email, account.email)
+            @secure_session.set(:role, account.role) # Also encrypt the role!
+
             # Log successful login to security log
             SessionService.log_user_action(account.id, 'login')
             # Set flash notice for successful login
@@ -147,6 +191,7 @@ module TickIt
             # Render account page directly (session will persist through cookie on response)
             render_with_layout 'accounts/overview'
           else
+            puts '--- DEBUG: Login FAILED (Invalid credentials) ---'
             response.status = 401 # Unauthorized - invalid credentials
             flash['error'] = 'Invalid email or password'
             return render_with_layout 'sessions/login'
@@ -198,9 +243,9 @@ module TickIt
           begin
             account = AccountService.create_account(email:, password:, role: 'member')
             # Automatically create session for new user
-            session[:account_id] = account.id
-            session[:email] = account.email
-            session[:role] = account.role
+            @secure_session.set(:account_id, account.id)
+            @secure_session.set(:email, account.email)
+            @secure_session.set(:role, account.role)
             SessionService.log_user_action(account.id, 'register')
             # Set flash notice for successful registration
             flash['notice'] = 'Account created successfully! Welcome to TickIt.'
@@ -224,7 +269,7 @@ module TickIt
       # Validates session by checking if user still exists in database
       r.on 'account' do
         r.get do
-          unless session && session[:account_id]
+          unless @secure_session.get(:account_id)
             response.status = 403 # Forbidden - not authenticated
             flash['error'] = 'You must be logged in to access your account'
             r.redirect '/login'
@@ -234,9 +279,9 @@ module TickIt
           # (prevents access if account was deleted after login)
           unless @current_user
             # Clear invalid session data
-            session.delete(:account_id)
-            session.delete(:email)
-            session.delete(:role)
+            @secure_session.delete(:account_id)
+            @secure_session.delete(:email)
+            @secure_session.delete(:role)
             response.status = 403 # Forbidden - session invalid
             flash['error'] = 'Your session has expired. Please log in again.'
             r.redirect '/login'
@@ -251,7 +296,7 @@ module TickIt
       # Session data is stored in encrypted HTTP-only cookie by Roda
       # Deleting session keys effectively clears the cookie
       r.on 'logout' do
-        if session[:account_id]
+        if @secure_session.get(:account_id)
           # Log the logout action for security audit
           SessionService.log_user_action(session[:account_id], 'logout')
         end

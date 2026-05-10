@@ -10,6 +10,10 @@ module TickIt
   # Configuration for the API
   class Api < Roda
     plugin :environments
+    configure :production do
+      plugin :redirect_http_to_https
+      plugin :hsts
+    end
 
     # load config secrets into local environment variables (ENV)
     # FIGARO_SECRETS_PATH may point to a temp file in tests (e.g. missing DATABASE_URL check)
