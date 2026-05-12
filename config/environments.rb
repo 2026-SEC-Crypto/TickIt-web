@@ -35,7 +35,7 @@ module TickIt
       raise 'DATABASE_URL is missing. Copy config/secrets-example.yml to config/secrets.yml and set DATABASE_URL.'
     end
 
-    DB = Sequel.connect("#{db_url}?encoding=utf8")
+    DB = Sequel.connect("#{db_url}?encoding=utf8", pool_class: :threaded, max_connections: 5)
     def self.DB # rubocop:disable Naming/MethodName
       DB
     end
@@ -46,6 +46,7 @@ module TickIt
 
     configure :development, :test do
       require 'pry'
+      DB.pool.connection_validation_frequency = 900  # Validate connections every 15 minutes
       use Rack::Session::Pool, expire_after: ONE_MONTH
     end
 
