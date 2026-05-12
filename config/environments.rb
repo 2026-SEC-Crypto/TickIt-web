@@ -36,8 +36,8 @@ module TickIt
 
   # Create namespace for backward compatibility with models using TickIt::Api::DB
   module Api
-    def self.DB # rubocop:disable Naming/MethodName
-      TickIt::DB
-    end
   end
+  
+  # DB is a constant, make it available as Api::DB
+  Api.const_set(:DB, DB)
 end
