@@ -46,6 +46,16 @@ module TickIt
 
     configure :development, :test do
       require 'pry'
+      use Rack::Session::Pool, expire_after: ONE_MONTH
+    end
+
+    configure :production do
+      require 'redis'
+      redis_url = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')
+      redis = Redis.new(url: redis_url)
+      use Rack::Session::Redis, 
+          redis: redis,
+          expire_after: ONE_MONTH
     end
   end
 end
