@@ -17,6 +17,7 @@ require_relative '../../lib/secure_session'
 Dotenv.load # This loads the variables from your .env file into ENV
 
 SecureMessage.setup(ENV.fetch('MSG_KEY'))
+
 module TickIt
   # Web controller for handling user-facing pages and authentication
   # Uses Roda framework with Slim templating engine and secure HTTP-only cookie sessions
@@ -37,24 +38,36 @@ module TickIt
   #
   class Web < Roda
     plugin :render, engine: 'slim', views: 'app/views'
-
-    # Configure sessions with:
-    # - secret: Encryption key for session data (set from env or default to dev key)
-    # - HTTP-only cookies: Prevents JavaScript access to session cookies (XSS protection)
-    # - Secure flag: Only in production (forces HTTPS transmission)
-    plugin :sessions,
-           key: '_tickit_api_session',
-           secret: ENV.fetch('SESSION_KEY',
-                             'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now')
-    # Flash plugin for temporary messages across redirects
-    # Stores messages in encrypted session and automatically clears after one request
     plugin :flash
     plugin :halt
     plugin :environments
+    plugin :common_logger, $stderr
     # plugin :route_csrf, csrf_failure: :halt
+
     configure :production do
       plugin :redirect_http_to_https
       plugin :hsts
+    end
+
+    # Configure sessions based on environment with pooling strategy
+    # Development/Test: Use in-memory session pool
+    # Production: Use Redis for distributed sessions
+    if ENV.fetch('RACK_ENV', 'development') == 'production'
+      require 'redis'
+      require 'rack/session/redis'
+      redis_url = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')
+      plugin :sessions,
+             key: '_tickit_web_session',
+             secret: ENV.fetch('SESSION_KEY', 'dev-session-key-set-in-production'),
+             expire_after: TickIt::ONE_MONTH
+    else
+      # Development/Test: Use in-memory session pool (Rack::Session::Pool)
+      use Rack::Session::Pool,
+          key: '_tickit_web_session',
+          secret: ENV.fetch('SESSION_KEY',
+                            'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now'),
+          expire_after: TickIt::ONE_MONTH
+      plugin :sessions, key: '_tickit_web_session'
     end
 
     # Helper to render views with layout
