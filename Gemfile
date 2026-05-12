@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 source 'https://rubygems.org'
-ruby '3.4.2'
+ruby File.read('.ruby-version').strip
+# ruby '3.4.2'
 
 gem 'base64'
 gem 'bcrypt'
@@ -28,4 +29,8 @@ group :development, :test do
   gem 'rubocop'
   gem 'table_print'
   gem 'webmock'
+end
+
+group :production do
+  gem 'pg'
 end
