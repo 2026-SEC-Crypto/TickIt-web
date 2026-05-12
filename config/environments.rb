@@ -51,10 +51,10 @@ module TickIt
 
     configure :production do
       require 'redis'
+      require 'redis-session-store'
       redis_url = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')
-      redis = Redis.new(url: redis_url)
-      use Rack::Session::Redis, 
-          redis: redis,
+      use RedisSessionStore, 
+          redis_server: redis_url,
           expire_after: ONE_MONTH
     end
   end
