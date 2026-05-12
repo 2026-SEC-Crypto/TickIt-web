@@ -2,6 +2,7 @@
 
 require 'roda'
 require 'json'
+require 'securerandom'
 
 require_relative '../../config/environments'
 require_relative '../../lib/security_log'
@@ -16,10 +17,34 @@ require_relative '../services/authorization_service'
 
 module TickIt
   class Api < Roda
+    # Set up plugins
     plugin :halt
     plugin :multi_route
-    plugin :sessions, key: '_tickit_api_session',
-                      secret: ENV.fetch('SESSION_KEY', 'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now')
+    plugin :environments
+    plugin :common_logger, $stderr
+
+    # Configure based on environment
+    configure :production do
+      plugin :redirect_http_to_https
+      plugin :hsts
+    end
+
+    # Configure sessions based on environment
+    if ENV.fetch('RACK_ENV', 'development') == 'production'
+      require 'redis'
+      require 'rack/session/redis'
+      redis_url = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')
+      plugin :sessions,
+             key: '_tickit_api_session',
+             secret: ENV.fetch('SESSION_KEY', 'dev-session-key-set-in-production'),
+             expire_after: TickIt::ONE_MONTH
+    else
+      plugin :sessions,
+             key: '_tickit_api_session',
+             secret: ENV.fetch('SESSION_KEY',
+                               'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now'),
+             expire_after: TickIt::ONE_MONTH
+    end
 
     # 自動載入 routes 目錄下的所有路由檔案
     Dir.glob(File.expand_path('routes/*.rb', __dir__)).each do |file|
@@ -27,15 +52,13 @@ module TickIt
     end
 
     route do |r|
-      r.redirect_http_to_https if Api.environment == :production
-      response['Content-Type'] = 'application/json'
-      puts "👉 [DEBUG] 伺服器收到請求！目前看見的網址是：#{r.path}"
-
-      # 強制 SSL (HTTPS) 連線檢查
-      if ENV['RACK_ENV'] == 'production' && r.scheme != 'https'
+      # Force HTTPS in production
+      if ENV.fetch('RACK_ENV', 'development') == 'production' && r.scheme != 'https'
         response.status = 403
         r.halt({ error: 'Secure connection (HTTPS) is required' }.to_json)
       end
+
+      response['Content-Type'] = 'application/json'
 
       begin
         r.root do
