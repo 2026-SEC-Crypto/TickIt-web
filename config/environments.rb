@@ -33,4 +33,11 @@ module TickIt
   def self.config
     Figaro.env
   end
+
+  # Create namespace for backward compatibility with models using TickIt::Api::DB
+  module Api
+    def self.DB # rubocop:disable Naming/MethodName
+      TickIt::DB
+    end
+  end
 end
