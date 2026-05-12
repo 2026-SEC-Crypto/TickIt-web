@@ -1,10 +1,16 @@
 # frozen_string_literal: true
 
-require 'rspec/core/rake_task'
 require './require_app'
 require 'fileutils'
 require 'sequel'
 require 'sequel/extensions/seed'
+
+# Only require RSpec in non-production environments
+begin
+  require 'rspec/core/rake_task'
+rescue LoadError
+  # RSpec not available (e.g., production)
+end
 
 task default: :spec
 
