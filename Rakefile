@@ -5,28 +5,33 @@ require 'fileutils'
 require 'sequel'
 require 'sequel/extensions/seed'
 
-# Only require RSpec in non-production environments
-begin
-  require 'rspec/core/rake_task'
-rescue LoadError
-  # RSpec not available (e.g., production)
+rspec_available = false
+if ENV.fetch('RACK_ENV', 'development') != 'production'
+  begin
+    require 'rspec/core/rake_task'
+    rspec_available = true
+  rescue LoadError
+    rspec_available = false
+  end
 end
 
-task default: :spec
+if rspec_available
+  task default: :spec
 
-desc 'Run API specs only'
-task :api_spec do
-  sh 'bundle exec rspec spec/api_spec.rb'
+  desc 'Run API specs only'
+  task :api_spec do
+    sh 'bundle exec rspec spec/api_spec.rb'
+  end
+else
+  task default: :print_env
 end
 
 # desc 'Test all the specs'
 # RSpec::Core::RakeTask.new(:spec) do |t|
 #   t.pattern = 'spec/*_spec.rb'
 # end
-begin
-  require 'rspec/core/rake_task'
+if rspec_available
   RSpec::Core::RakeTask.new(:spec)
-rescue LoadError # rubocop:disable Lint/SuppressedException
 end
 
 desc 'Runs rubocop on tested code'
@@ -76,14 +81,14 @@ namespace :db do
   desc 'Run migrations'
   task migrate: %i[load print_env] do
     puts 'Migrating database to latest'
-    Sequel::Migrator.run(@app.DB, 'app/db/migrations')
+    Sequel::Migrator.run(TickIt::DB, 'app/db/migrations')
   end
 
   desc 'Rollback the last migration'
   task rollback: :load do
     puts "Rolling back #{@app.environment} database..."
-    latest_index = Sequel::Migrator.latest_migration_index(@app.DB, 'app/db/migrations')
-    Sequel::Migrator.run(@app.DB, 'app/db/migrations', target: latest_index - 1)
+    latest_index = Sequel::Migrator.latest_migration_index(TickIt::DB, 'app/db/migrations')
+    Sequel::Migrator.run(TickIt::DB, 'app/db/migrations', target: latest_index - 1)
     puts '✓ Rollback complete'
   end
 
@@ -98,7 +103,7 @@ namespace :db do
 
     Sequel.extension :seed
     Sequel::Seed.setup(@app.environment)
-    Sequel::Seeder.apply(@app.DB, 'seeds')
+    Sequel::Seeder.apply(TickIt::DB, 'seeds')
 
     puts '✓ Database seeded'
   end
@@ -106,10 +111,10 @@ namespace :db do
   desc 'Delete all data in database; maintain tables'
   task delete: :load_models do
     puts "Deleting all data from #{@app.environment} database..."
-    @app.DB[:accounts_events].delete
-    @app.DB[:attendance_records].delete
-    @app.DB[:events].delete
-    @app.DB[:accounts].delete
+    TickIt::DB[:accounts_events].delete
+    TickIt::DB[:attendance_records].delete
+    TickIt::DB[:events].delete
+    TickIt::DB[:accounts].delete
     puts '✓ All data deleted'
   end
 
@@ -130,10 +135,10 @@ namespace :db do
     puts "Environment: #{@app.environment}"
     puts "Database URL: #{ENV.fetch('DATABASE_URL', nil)}"
 
-    if @app.DB.tables.empty?
+    if TickIt::DB.tables.empty?
       puts 'Tables: None'
     else
-      puts "Tables: #{@app.DB.tables.join(', ')}"
+      puts "Tables: #{TickIt::DB.tables.join(', ')}"
     end
   end
   desc 'Bootstrap an admin: create-or-find EMAIL, grant admin role'
