@@ -7,7 +7,7 @@ require_relative '../../lib/security_log'
 
 module TickIt
   # Scheduled activity or session that students can attend
-  class Event < Sequel::Model(TickIt::Api::DB[:events])
+  class Event < Sequel::Model(TickIt::DB[:events])
     plugin :timestamps, update_on_create: true
     plugin :whitelist_security
     plugin :association_dependencies

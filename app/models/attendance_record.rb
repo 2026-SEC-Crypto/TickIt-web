@@ -3,7 +3,7 @@
 require 'securerandom'
 module TickIt
   # Links a student to an event with check-in/out state
-  class AttendanceRecord < Sequel::Model(TickIt::Api::DB[:attendance_records])
+  class AttendanceRecord < Sequel::Model(TickIt::DB[:attendance_records])
     plugin :timestamps, update_on_create: true
     plugin :whitelist_security
     set_allowed_columns :student_number, :event_id, :check_in_time
