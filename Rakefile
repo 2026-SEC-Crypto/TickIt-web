@@ -63,13 +63,21 @@ task console: :print_env do
 end
 
 namespace :db do
+  # desc 'Load the database connection'
+  # task :load do
+  #   require_app(nil)
+  #   require 'sequel'
+
+  #   Sequel.extension :migration
+  #   @app = TickIt::Api
+  # end
   desc 'Load the database connection'
   task :load do
     require_app(nil)
     require 'sequel'
 
     Sequel.extension :migration
-    @app = TickIt::Api
+    @app = TickIt
   end
 
   desc 'Load model files'
