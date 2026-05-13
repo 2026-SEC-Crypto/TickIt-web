@@ -55,7 +55,7 @@ module TickIt
     if ENV.fetch('RACK_ENV', 'development') == 'production'
       require 'redis'
       require 'rack/session/redis'
-      redis_url = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0')
+      redis_url = ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0')
       plugin :sessions,
              key: '_tickit_web_session',
              secret: ENV.fetch('SESSION_KEY', 'dev-session-key-set-in-production'),
