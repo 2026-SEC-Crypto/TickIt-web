@@ -45,10 +45,10 @@ module TickIt
     Figaro.env
   end
 
-  # Create namespace for backward compatibility with models using TickIt::Api::DB
-  module Api
-  end
+  # # Create namespace for backward compatibility with models using TickIt::Api::DB
+  # module Api
+  # end
   
-  # DB is a constant, make it available as Api::DB
-  Api.const_set(:DB, DB)
+  # # DB is a constant, make it available as Api::DB
+  # Api.const_set(:DB, DB)
 end
