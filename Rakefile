@@ -19,9 +19,14 @@ task :api_spec do
   sh 'bundle exec rspec spec/api_spec.rb'
 end
 
-desc 'Test all the specs'
-RSpec::Core::RakeTask.new(:spec) do |t|
-  t.pattern = 'spec/*_spec.rb'
+# desc 'Test all the specs'
+# RSpec::Core::RakeTask.new(:spec) do |t|
+#   t.pattern = 'spec/*_spec.rb'
+# end
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+rescue LoadError # rubocop:disable Lint/SuppressedException
 end
 
 desc 'Runs rubocop on tested code'
