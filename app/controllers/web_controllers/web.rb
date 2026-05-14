@@ -326,9 +326,9 @@ module TickIt
 
         # Delete all account information from session cookie
         # This removes the encrypted data from the HTTP-only cookie
-        session.delete(:account_id)
-        session.delete(:email)
-        session.delete(:role)
+        @secure_session.delete(:account_id)
+        @secure_session.delete(:email)
+        @secure_session.delete(:role)
 
         # Set flash message for display on next page
         # Flash messages are automatically cleared after one request
