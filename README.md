@@ -538,87 +538,35 @@ The API does not expose full student CRUD at the moment. Instead, it exposes stu
 }
 ```
 
-## Documentation
 
-Additional detailed documentation is available:
 
-- **[AUTHENTICATION.md](AUTHENTICATION.md)** - Complete guide to authentication, session management, and flash messages
-  - How login/logout works
-  - Session storage and validation
-  - Flash message system with examples
-  - Setup and usage examples
 
-- **[RBAC_IMPLEMENTATION.md](RBAC_IMPLEMENTATION.md)** - Complete guide to role-based access control
-  - Role definitions and permissions matrix
-  - Web UI authorization features
-  - API endpoint protection
-  - Testing RBAC
-  - Security logging and audit trail
-  - Usage examples for both views and controllers
+## Deploying and Managing on Heroku
+To deploy to heroku, use the following command in terminal:
 
-## Project Structure
-
+```sh
+git push heroku main
 ```
-TickIt-api/
-├── app/
-│   ├── controllers/
-│   │   ├── app.rb                 # API controller with RBAC helpers
-│   │   ├── web_controllers/
-│   │   │   └── web.rb             # Web UI controller with auth & RBAC
-│   │   └── routes/
-│   │       ├── events.rb          # API event routes (role-protected)
-│   │       ├── attendances.rb     # API attendance routes (role-protected)
-│   │       ├── accounts.rb        # API account routes (role-protected)
-│   │       ├── auth.rb            # API authentication routes
-│   │       └── students.rb        # API student routes
-│   ├── models/
-│   │   ├── account.rb             # User account model with roles
-│   │   ├── event.rb               # Event model
-│   │   └── attendance_record.rb   # Attendance tracking model
-│   ├── services/
-│   │   ├── account_service.rb     # Authentication service
-│   │   ├── session_service.rb     # Session management
-│   │   ├── authorization_service.rb  # RBAC authorization (13 permissions)
-│   │   ├── event_service.rb       # Event operations
-│   │   └── attendance_record_service.rb  # Attendance operations
-│   ├── views/
-│   │   ├── layouts/
-│   │   │   └── layout.slim        # Master layout with navigation
-│   │   ├── homes/
-│   │   │   └── home.slim          # Home page
-│   │   ├── sessions/
-│   │   │   ├── login.slim         # Login form
-│   │   │   └── register.slim      # Registration form
-│   │   ├── accounts/
-│   │   │   └── overview.slim      # Account details with RBAC sections
-│   │   ├── shared/
-│   │   │   └── flash_messages.slim # Flash message component
-│   │   └── errors/
-│   │       └── not_found.slim     # 404 error page
-│   └── db/
-│       ├── migrations/            # Database schema migrations
-│       └── seeds/                 # Database seed scripts
-├── config/
-│   ├── environments.rb            # Environment configuration
-│   ├── secrets.yml                # Secrets (DB keys, encryption keys)
-│   └── secrets-example.yml        # Template for secrets.yml
-├── lib/
-│   ├── key_stretching.rb          # Password hashing with bcrypt
-│   ├── secure_db.rb               # Encryption/decryption utilities
-│   └── security_log.rb            # Audit logging
-├── spec/
-│   ├── integration/               # Integration tests
-│   ├── models/                    # Model tests
-│   ├── services/                  # Service tests
-│   └── support/                   # Test helpers
-├── seeds/
-│   └── 20260427_create_all.rb     # Database seed data
-├── config.ru                      # Rack configuration (mounts controllers)
-├── Gemfile                        # Ruby dependencies
-├── Rakefile                       # Rake tasks
-├── AUTHENTICATION.md              # Auth system guide
-├── RBAC_IMPLEMENTATION.md         # RBAC guide
-└── README.md                      # This file
+
+### Viewing Logs on Heroku
+
+To view the logs for your app on Heroku, use the following command in your terminal:
+
+```sh
+heroku logs --tail
+```
+
+This command will stream the logs in real time.
+
+### Opening the App on Heroku
+
+To open your deployed app in the browser, run:
+
+```sh
+heroku open -a sec-2026-tickit            
+```
+
+Or simply visit `https://sec-2026-tickit-319cbadd4290.herokuapp.com/` in your web browser.
 ```
 
 
