@@ -268,10 +268,20 @@ module TickIt
             make_authorization_available
             # Render account page directly (session will persist through cookie on response)
             render_with_layout 'accounts/overview'
+          # rescue StandardError => e
+          #   # Return 409 Conflict if email already exists, 400 for other validation errors
+          #   response.status = e.message.include?('already exists') ? 409 : 400
+          #   flash['error'] = e.message
+          #   return render_with_layout 'sessions/register'
+          # end
           rescue StandardError => e
-            # Return 409 Conflict if email already exists, 400 for other validation errors
+            puts "REGISTER ERROR: #{e.class}"
+            puts "REGISTER ERROR MESSAGE: #{e.message}"
+            puts e.backtrace
+
             response.status = e.message.include?('already exists') ? 409 : 400
             flash['error'] = e.message
+
             return render_with_layout 'sessions/register'
           end
         end
