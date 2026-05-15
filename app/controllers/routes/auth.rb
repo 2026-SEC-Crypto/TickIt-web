@@ -3,13 +3,15 @@
 module TickIt
   class Api < Roda
     route('auth') do |r|
-      # 處理 POST /api/v1/auth/authenticate
+      # POST /api/v1/auth/authenticate
       r.on 'authenticate' do
         r.post do
           credentials = JSON.parse(r.body.read, symbolize_names: true)
-
-          # 這裡需要確保你的 AccountService 裡有 authenticate 方法
-          account = TickIt::AccountService.authenticate(credentials)
+          puts "--- API AUTH DEBUG: Received Email: #{credentials[:email]} ---"
+          account = TickIt::AccountService.authenticate(
+            email: credentials[:email],
+            password: credentials[:password]
+          )
 
           if account
             response.status = 200

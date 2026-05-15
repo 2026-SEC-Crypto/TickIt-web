@@ -19,13 +19,13 @@ module TickIt
     end
 
     # Create a new account with validation
-    def self.create_account(email:, password:, role: 'member')
+    # def self.create_account(email:, password:, role: 'member')
+    def self.create_account(email:, password:)
       validate_account_params(email:, password:)
 
       Account.create(
         email:,
-        password:,
-        role:
+        password:
       )
     rescue Sequel::UniqueConstraintViolation, SQLite3::ConstraintException
       raise "Account with email '#{email}' already exists"
@@ -33,10 +33,9 @@ module TickIt
 
     # Authenticate account with password
     def self.authenticate(email:, password:)
-      # Find account by email hash for security
-      account = find_by_email(email)
-      return nil unless account
-      return nil unless account.password?(password)
+      account = Account.first(email_hash: hash_email(email))
+
+      return nil unless account && account.password?(password)
 
       account
     end
@@ -45,6 +44,10 @@ module TickIt
     def self.find_by_email(email)
       email_hash = Digest::SHA256.hexdigest(email)
       Account.first(email_hash:)
+    end
+
+    def self.hash_email(email)
+      Digest::SHA256.hexdigest(email)
     end
 
     # Update account (limited fields to prevent mass assignment)

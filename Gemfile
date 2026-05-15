@@ -18,7 +18,6 @@ gem 'rbnacl'
 gem 'roda'
 gem 'sequel'
 gem 'sequel-seed'
-gem 'slim'
 gem 'sqlite3'
 
 group :development, :test do
