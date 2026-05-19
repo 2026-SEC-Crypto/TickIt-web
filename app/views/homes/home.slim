@@ -1,0 +1,73 @@
+h1 Welcome to TickIt
+
+- if @current_user
+  .user-greeting
+    p
+      | Hello, 
+      strong = @current_user.email
+      | ! You are logged in.
+  
+  .content
+    h2 What is TickIt?
+    p TickIt is a secure event attendance tracking system!
+    
+    .features
+      h3 Features:
+      ul
+        li Secure event management
+        li Attendance tracking
+        li Encrypted data storage
+        li Role-based access control
+
+    .actions
+      h3 Quick Actions:
+      ul
+        li
+          a href="/account" View your account details
+        li
+          a href="/events" View events
+
+- else
+  p The secure attendance tracking system for educational events.
+
+  .content
+    h2 Get Started
+    .auth-buttons
+      a.btn href="/login" Login
+      a.btn href="/register" Register
+
+  .info
+    h2 About TickIt
+    p TickIt securely manages event attendance with encrypted storage and audit logging.
+
+  style
+    | .content {
+    |   margin-top: 2rem;
+    | }
+    | .features, .next-steps, .info {
+    |   margin: 2rem 0;
+    | }
+    | .auth-buttons {
+    |   display: flex;
+    |   gap: 1rem;
+    |   margin: 2rem 0;
+    | }
+    | .btn {
+    |   display: inline-block;
+    |   padding: 0.75rem 1.5rem;
+    |   background-color: #3498db;
+    |   color: white;
+    |   text-decoration: none;
+    |   border-radius: 4px;
+    |   transition: background-color 0.3s ease;
+    | }
+    | .btn:hover {
+    |   background-color: #2980b9;
+    | }
+    | ul {
+    |   margin-left: 2rem;
+    |   margin-top: 1rem;
+    | }
+    | li {
+    |   margin: 0.5rem 0;
+    | }

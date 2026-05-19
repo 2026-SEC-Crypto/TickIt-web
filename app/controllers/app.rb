@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-puts 'Loading API application'
 require 'roda'
 require 'json'
 
@@ -22,31 +21,17 @@ module TickIt
     plugin :sessions, key: '_tickit_api_session',
                       secret: ENV.fetch('SESSION_KEY', 'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now')
 
-    #
-    route_path = File.expand_path('routes/*.rb', __dir__)
-    puts "--- API DEBUG: #{route_path} ---"
-
-    files = Dir.glob(route_path)
-    if files.empty?
-      puts '--- API WARNING: Nothing ---'
-    else
-      files.each do |file|
-        puts "--- API LOADER:  #{File.basename(file)} ---"
-        require file
-      end
+    # 自動載入 routes 目錄下的所有路由檔案
+    Dir.glob(File.expand_path('routes/*.rb', __dir__)).each do |file|
+      require file
     end
 
-    require_relative 'routes/accounts'
-    require_relative 'routes/auth'
-    require_relative 'routes/events'
-    require_relative 'routes/attendances'
-    require_relative 'routes/students'
-
     route do |r|
-      puts "--- API GLOBAL DEBUG: Path=#{r.path}, Method=#{r.request_method} ---"
       r.redirect_http_to_https if Api.environment == :production
       response['Content-Type'] = 'application/json'
+      puts "👉 [DEBUG] 伺服器收到請求！目前看見的網址是：#{r.path}"
 
+      # 強制 SSL (HTTPS) 連線檢查
       if ENV['RACK_ENV'] == 'production' && r.scheme != 'https'
         response.status = 403
         r.halt({ error: 'Secure connection (HTTPS) is required' }.to_json)
@@ -59,7 +44,11 @@ module TickIt
 
         r.on 'v1' do
           # 將請求分發給對應的子檔案處理
-          r.multi_route
+          r.on('events')      { r.route 'events' }
+          r.on('attendances') { r.route 'attendances' }
+          r.on('students')    { r.route 'students' }
+          r.on('accounts')    { r.route 'accounts' }
+          r.on('auth')        { r.route 'auth' }
         end
 
         response.status = 404

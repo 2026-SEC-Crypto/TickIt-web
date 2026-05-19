@@ -3,7 +3,6 @@
 module TickIt
   class Api < Roda
     route('accounts') do |r|
-      puts '--- API DEBUG: accounts.rb ---'
       r.get String do |account_id|
         account = TickIt::AccountService.find_account(account_id)
 
@@ -24,34 +23,16 @@ module TickIt
 
       r.post do
         # Only admins can create accounts (403 if unauthorized)
-        # require_authorization!('create_account', 'Account')
-        raw_body = r.body.read
-        puts "--- API DEBUG:  #{raw_body.inspect} ---"
+        require_authorization!('create_account', 'Account')
 
-        begin
-          puts '--- API start---'
-          account_data = JSON.parse(raw_body)
-        rescue JSON::ParserError
-          puts '--- API ERROR: JSON failed---'
-          r.halt 400, { error: 'Invalid JSON' }.to_json
-        end
+        account_data = JSON.parse(r.body.read)
 
-        puts '--- API start2---'
-        begin
-          # 這裡是你的嫌疑犯行
-          account = TickIt::AccountService.create_account(
-            email: account_data['email'],
-            password: account_data['password']
-          )
+        account = TickIt::AccountService.create_account(
+          email: account_data['email'],
+          password: account_data['password'],
+          role: account_data['role'] || 'member'
+        )
 
-          response.status = 201
-          { message: 'Created', account: account }.to_json
-        rescue StandardError => e
-          # 🌟 這兩行會告訴你真相
-
-          response.status = 400
-          { error: e.message }.to_json
-        end
         response.status = 201
         {
           message: 'Account created successfully',
