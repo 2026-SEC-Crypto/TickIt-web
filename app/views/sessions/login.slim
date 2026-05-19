@@ -1,5 +1,9 @@
 h1 Login
 
+- if @error
+  .alert-error
+    p = @error
+
 form method="post" action="/login"
   
   .form-group

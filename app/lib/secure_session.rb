@@ -1,24 +1,27 @@
 # frozen_string_literal: true
 
-# Proxy class to manage encrypted data storage within the session
-# It sits between our code and the real Roda session
+# Proxy class to manage encrypted data storage within the session.
+# Always uses string keys because Roda serializes sessions as JSON (symbols do not round-trip).
 class SecureSession
   def initialize(session)
     @session = session
   end
 
-  # Encrypt a value and store it in the session
   def set(key, value)
-    @session[key] = SecureMessage.encrypt(value)
+    @session[normalize_key(key)] = SecureMessage.encrypt(value)
   end
 
-  # Retrieve an encrypted value from the session and decrypt it
   def get(key)
-    SecureMessage.decrypt(@session[key])
+    SecureMessage.decrypt(@session[normalize_key(key)])
   end
 
-  # Remove a key from the session
   def delete(key)
-    @session.delete(key)
+    @session.delete(normalize_key(key))
+  end
+
+  private
+
+  def normalize_key(key)
+    key.to_s
   end
 end

@@ -1,37 +1,38 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
+require_relative '../../app/lib/bootstrap'
 
-describe 'Create Account Service' do
-  before do
-    @account_data = { email: 'test@example.com', username: 'testuser', password: 'password123' }
+describe TickIt::CreateAccount do
+  let(:api_url) { ENV.fetch('API_URL') }
 
-    @api_response = { message: 'Account created', data: { id: 1, username: 'testuser', email: 'test@example.com' } }
+  after { WebMock.reset! }
 
-    ENV['API_URL'] = 'http://api.fake.com/api/v1'
-    @api_url = ENV.fetch('API_URL', nil)
-  end
-
-  after do
-    WebMock.reset!
-    ENV.delete('API_URL')
-  end
-
-  it 'HAPPY: should send post request to API and return success without hitting real API' do
-    stub_request(:post, "#{@api_url}/accounts")
-      .with(
-        body: @account_data.to_json,
-        headers: { 'Content-Type' => 'application/json; charset=utf-8' }
-      )
+  it 'posts to auth/register and returns a SessionUser' do
+    stub_request(:post, "#{api_url}/auth/register")
+      .with(body: { email: 'test@example.com', password: 'password123', role: 'member' }.to_json)
       .to_return(
         status: 201,
-        body: @api_response.to_json,
+        body: {
+          message: 'Account created successfully',
+          account: { id: 'acc-1', email: 'test@example.com', role: 'member' }
+        }.to_json,
         headers: { 'Content-Type' => 'application/json' }
       )
 
-    result = TickIt::CreateAccount.new.call(**@account_data)
+    user = described_class.new.call(email: 'test@example.com', password: 'password123')
 
-    expect(result['message']).to eq('Account created')
-    expect(result['data']['username']).to eq('testuser')
+    expect(user).to be_a(TickIt::SessionUser)
+    expect(user.email).to eq('test@example.com')
+    expect(user.role).to eq('member')
+  end
+
+  it 'raises InvalidAccount when email already exists' do
+    stub_request(:post, "#{api_url}/auth/register")
+      .to_return(status: 409, body: { error: "Account with email 'test@example.com' already exists" }.to_json)
+
+    expect do
+      described_class.new.call(email: 'test@example.com', password: 'password123')
+    end.to raise_error(TickIt::CreateAccount::InvalidAccount, /already exists/)
   end
 end

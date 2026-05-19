@@ -2,137 +2,242 @@
 
 require 'roda'
 require 'json'
-require 'securerandom'
-
-require_relative '../../config/environments'
-require_relative '../../lib/security_log'
-require_relative '../models/event'
-require_relative '../models/attendance_record'
-require_relative '../models/account'
-require_relative '../services/event_service'
-require_relative '../services/account_service'
-require_relative '../services/attendance_record_service'
-require_relative '../services/session_service'
-require_relative '../services/authorization_service'
+require_relative '../lib/bootstrap'
 
 module TickIt
-  class Api < Roda
-    # Set up plugins
+  # Web UI — renders Slim pages and talks to TickIt API over HTTP.
+  class Web < Roda
+    plugin :render, engine: 'slim', views: 'app/views'
+    plugin :flash
     plugin :halt
-    plugin :multi_route
     plugin :environments
     plugin :common_logger, $stderr
 
-    # Configure based on environment
+    SESSION_SECRET = ENV.fetch(
+      'SESSION_KEY',
+      'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now'
+    ).freeze
+
     configure :production do
       plugin :redirect_http_to_https
       plugin :hsts
     end
 
-    # Configure sessions based on environment
     if ENV.fetch('RACK_ENV', 'development') == 'production'
       require 'redis'
       require 'rack/session/redis'
-      redis_url = ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0')
+      ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0')
       plugin :sessions,
-             key: '_tickit_api_session',
-             secret: ENV.fetch('SESSION_KEY', 'dev-session-key-set-in-production'),
-             expire_after: TickIt::ONE_MONTH
+             key: '_tickit_web_session',
+             secret: SESSION_SECRET,
+             expire_after: 2_592_000
     else
       plugin :sessions,
-             key: '_tickit_api_session',
-             secret: ENV.fetch('SESSION_KEY',
-                               'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now'),
-             expire_after: TickIt::ONE_MONTH
+             key: '_tickit_web_session',
+             secret: SESSION_SECRET,
+             expire_after: 2_592_000
     end
 
-    # 自動載入 routes 目錄下的所有路由檔案
-    Dir.glob(File.expand_path('routes/*.rb', __dir__)).each do |file|
-      require file
-    end
-
-    route do |r|
-      # Force HTTPS in production
-      if ENV.fetch('RACK_ENV', 'development') == 'production' && r.scheme != 'https'
-        response.status = 403
-        r.halt({ error: 'Secure connection (HTTPS) is required' }.to_json)
-      end
-
-      response['Content-Type'] = 'application/json'
-
-      begin
-        r.root do
-          { message: 'TickIt API is up and running!' }.to_json
-        end
-
-        r.on 'v1' do
-          # 將請求分發給對應的子檔案處理
-          r.on('events')      { r.route 'events' }
-          r.on('attendances') { r.route 'attendances' }
-          r.on('students')    { r.route 'students' }
-          r.on('accounts')    { r.route 'accounts' }
-          r.on('auth')        { r.route 'auth' }
-        end
-
-        response.status = 404
-        { error: 'Route not found' }.to_json
-      rescue StandardError => e
-        TickIt::SecurityLog.log_error(e, path: r.path, method: r.request_method)
-        response.status = 500
-        { error: 'Internal server error' }.to_json
-      end
-    end
-
-    # Authorization helper methods for API routes
-    def current_user
-      return nil if session[:user_id].nil?
-
-      TickIt::SessionService.current_user(session[:user_id])
+    def render_with_layout(view_name)
+      @flash = flash
+      view(view_name, layout: 'layouts/layout')
     end
 
     def authorized?(action)
-      user = current_user
-      return false if user.nil?
+      return false if @current_user.nil?
 
-      TickIt::AuthorizationService.authorized?(user, action)
+      AuthorizationService.authorized?(@current_user, action)
     end
 
     def can_act_on_account?(target_account, action)
-      user = current_user
-      return false if user.nil?
+      return false if @current_user.nil?
 
-      TickIt::AuthorizationService.can_act_on_account?(user, target_account, action)
-    end
-
-    def can_act_on_event?(event, action)
-      user = current_user
-      return false if user.nil?
-
-      TickIt::AuthorizationService.can_act_on_event?(user, event, action)
-    end
-
-    def require_authorization!(action, resource = nil)
-      return if ENV['RACK_ENV'] == 'test'
-
-      return if authorized?(action)
-
-      user = current_user
-      TickIt::AuthorizationService.log_unauthorized_attempt(user, action, resource)
-      request.halt(403, { error: 'Forbidden: insufficient permissions', action: action }.to_json)
+      AuthorizationService.can_act_on_account?(@current_user, target_account, action)
     end
 
     def admin?
-      user = current_user
-      return false if user.nil?
-
-      user.admin?
+      @current_user&.admin? || false
     end
 
     def organizer_or_admin?
-      user = current_user
-      return false if user.nil?
+      return false if @current_user.nil?
 
-      user.organizer? || user.admin?
+      @current_user.organizer? || @current_user.admin?
+    end
+
+    def make_authorization_available
+      @is_admin = admin?
+      @is_organizer_or_admin = organizer_or_admin?
+      @user_role = @current_user&.role || 'guest'
+    end
+
+    def establish_session(user)
+      @secure_session.set(:account_id, user.id)
+      @secure_session.set(:email, user.email)
+      @secure_session.set(:role, user.role)
+      @current_user = user
+    end
+
+    def load_current_user_from_session
+      account_id = @secure_session.get(:account_id)
+      return nil unless account_id
+
+      SessionUser.new(
+        id: account_id,
+        email: @secure_session.get(:email),
+        role: @secure_session.get(:role) || 'member'
+      )
+    end
+
+    def clear_session!
+      @secure_session.delete(:account_id)
+      @secure_session.delete(:email)
+      @secure_session.delete(:role)
+      @current_user = nil
+    end
+
+    route do |r|
+      r.redirect_http_to_https if Web.environment == :production
+
+      @secure_session = SecureSession.new(session)
+      @current_user = load_current_user_from_session
+      @flash = flash
+      make_authorization_available
+
+      r.root { r.redirect '/home' }
+
+      r.get 'home' do
+        render_with_layout 'homes/home'
+      end
+
+      r.on 'login' do
+        r.get do
+          if @secure_session.get(:account_id)
+            r.redirect '/account'
+          else
+            render_with_layout 'sessions/login'
+          end
+        end
+
+        r.post do
+          email = r.params['email']
+          password = r.params['password']
+
+          if email.to_s.strip.empty? || password.to_s.empty?
+            response.status = 400
+            @error = 'Email and password are required'
+            return render_with_layout 'sessions/login'
+          end
+
+          begin
+            user = AuthenticateAccount.new.call(email: email, password: password)
+          rescue AuthenticateAccount::Error => e
+            response.status = 503
+            flash['error'] = e.message
+            return render_with_layout 'sessions/login'
+          end
+
+          if user
+            establish_session(user)
+            SessionService.log_user_action(user.id, 'login')
+            flash['notice'] = "Welcome back, #{user.email}!"
+            flash['error'] = nil
+            r.redirect '/account'
+          else
+            response.status = 401
+            @error = 'Invalid email or password'
+            render_with_layout 'sessions/login'
+          end
+        end
+      end
+
+      r.on 'register' do
+        r.get do
+          if @secure_session.get(:account_id)
+            r.redirect '/account'
+          else
+            render_with_layout 'sessions/register'
+          end
+        end
+
+        r.post do
+          email = r.params['email']
+          password = r.params['password']
+          password_confirm = r.params['password_confirm']
+
+          if email.to_s.strip.empty?
+            response.status = 400
+            @error = 'Email is required'
+            return render_with_layout 'sessions/register'
+          end
+
+          if password.to_s.empty?
+            response.status = 400
+            @error = 'Password is required'
+            return render_with_layout 'sessions/register'
+          end
+
+          if password != password_confirm
+            response.status = 400
+            @error = 'Passwords do not match'
+            return render_with_layout 'sessions/register'
+          end
+
+          begin
+            user = CreateAccount.new.call(email: email, password: password)
+          rescue CreateAccount::InvalidAccount => e
+            response.status = e.message.include?('already exists') ? 409 : 400
+            @error = e.message
+            return render_with_layout 'sessions/register'
+          end
+
+          establish_session(user)
+          SessionService.log_user_action(user.id, 'register')
+          flash['notice'] = 'Account created successfully! Welcome to TickIt.'
+          flash['error'] = nil
+          r.redirect '/account'
+        end
+      end
+
+      r.on 'account' do
+        r.get do
+          unless @secure_session.get(:account_id)
+            response.status = 403
+            flash['error'] = 'You must be logged in to access your account'
+            return r.redirect '/login'
+          end
+
+          begin
+            user = FetchAccount.new.call(id: @secure_session.get(:account_id))
+            establish_session(user)
+            make_authorization_available
+          rescue FetchAccount::NotFound
+            clear_session!
+            response.status = 403
+            flash['error'] = 'Your session has expired. Please log in again.'
+            return r.redirect '/login'
+          rescue FetchAccount::Error => e
+            response.status = 503
+            flash['error'] = e.message
+            return r.redirect '/login'
+          end
+
+          render_with_layout 'accounts/overview'
+        end
+      end
+
+      r.on 'logout' do
+        account_id = @secure_session.get(:account_id)
+        SessionService.log_user_action(account_id, 'logout') if account_id
+
+        clear_session!
+        flash['notice'] = 'You have been successfully logged out. See you soon!'
+        r.redirect '/home'
+      end
+
+      response.status = 404
+      @error = 'Page not found'
+      render_with_layout 'errors/not_found'
     end
   end
 end

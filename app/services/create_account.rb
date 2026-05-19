@@ -1,23 +1,29 @@
 # frozen_string_literal: true
 
-require 'http'
-require 'json'
+require_relative 'api_client'
 
 module TickIt
-  class CreateAccount
+  class CreateAccount < ApiClient
     class InvalidAccount < StandardError; end
 
-    def call(email:, username:, password:)
-      api_url = ENV.fetch('API_URL', 'http://localhost:9292/api/v1')
-
+    def call(email:, password:, role: 'member')
       response = HTTP.post(
-        "#{api_url}/accounts",
-        json: { email: email, username: username, password: password }
+        "#{api_url}/auth/register",
+        json: { email: email, password: password, role: role }
       )
 
-      raise InvalidAccount, "API rejected the request (status: #{response.status})" unless response.status == 201
-
-      JSON.parse(response.body.to_s)
+      case response.status
+      when 201
+        body = parse_json(response.body)
+        SessionUser.from_api_hash(body.fetch('account'))
+      when 400, 409
+        raise InvalidAccount, error_message(response.body, 'Registration failed')
+      else
+        raise InvalidAccount,
+              error_message(response.body, "API rejected the request (status: #{response.status})")
+      end
+    rescue HTTP::Error => e
+      raise InvalidAccount, "Could not reach API: #{e.message}"
     end
   end
 end
