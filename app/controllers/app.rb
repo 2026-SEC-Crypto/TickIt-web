@@ -199,6 +199,19 @@ module TickIt
         end
       end
 
+      r.on 'verify_registration' do
+        token = request.params['token']
+        payload = RegistrationToken.decode(token)
+
+        if payload
+          session[:pending_registration] = payload
+          view 'sessions/register'
+        else
+          flash[:error] = 'Invalid or expired verification link.'
+          redirect '/'
+        end
+      end
+
       r.on 'account' do
         r.get do
           unless @secure_session.get(:account_id)
@@ -238,6 +251,52 @@ module TickIt
       response.status = 404
       @error = 'Page not found'
       render_with_layout 'errors/not_found'
+    end
+
+    route('register') do
+      username = request.params['username']
+      email = request.params['email']
+      password = request.params['password']
+      password_confirm = request.params['password_confirm']
+
+      if password != password_confirm
+        flash[:error] = 'Passwords do not match.'
+        redirect '/verify_registration'
+      end
+
+      begin
+        CreateAccount.new.call(email: email, password: password)
+        flash[:notice] = 'Account successfully created! Please log in.'
+        redirect '/login'
+      rescue CreateAccount::InvalidAccount => e
+        flash[:error] = e.message
+        redirect '/verify_registration'
+      end
+    end
+
+    route('register_initial') do
+      username = request.params['username']
+      email = request.params['email']
+
+      begin
+        create_account_service = CreateAccount.new
+
+        unless create_account_service.check_availability(username: username, email: email)
+          flash[:error] = 'Username or email is already taken.'
+          redirect '/register_initial'
+        end
+
+        verification_url = create_account_service.generate_verification_url(username: username, email: email)
+
+        # Mock sending email (to be implemented later)
+        puts "Verification email sent to #{email} with URL: #{verification_url}"
+
+        flash[:notice] = 'A verification email has been sent. Please check your inbox.'
+        redirect '/'
+      rescue CreateAccount::InvalidAccount => e
+        flash[:error] = e.message
+        redirect '/register_initial'
+      end
     end
   end
 end
