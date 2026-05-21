@@ -237,9 +237,13 @@ module TickIt
             return render_with_layout 'sessions/set_password'
           end
 
-          # Retrieve pending registration from session
-          pending_registration = session[:pending_registration]
-          if pending_registration.nil?
+          # Retrieve pending registration from session or form params (fallback)
+          pending_registration = session[:pending_registration] || {
+            username: r.params['username'],
+            email: r.params['email']
+          }
+          
+          if pending_registration[:email].nil? || pending_registration[:email].empty?
             flash['error'] = 'Session expired. Please register again.'
             return r.redirect '/register'
           end
