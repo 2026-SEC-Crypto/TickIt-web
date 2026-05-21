@@ -58,3 +58,4 @@ class EmailService
       If you did not register for TickIt, you can safely ignore this email.
     TEXT
   end
+end
