@@ -153,7 +153,7 @@ module TickIt
 
       r.on 'register' do
         r.get do
-          if @secure_session.get(:account_id)
+          if @secure_session && @secure_session.get(:account_id)
             r.redirect '/account'
           else
             render_with_layout 'sessions/register'
