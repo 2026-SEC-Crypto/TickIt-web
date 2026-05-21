@@ -51,6 +51,26 @@ h1 Account Overview
           li Track attendance records
           li View attendee information
 
+    .events-section
+      h2 My Events
+      - if @events && @events.any?
+        table.events-table
+          thead
+            tr
+              th Name
+              th Location
+              th Start Time
+              th End Time
+          tbody
+            - @events.each do |event|
+              tr
+                td = event['name']
+                td = event['location']
+                td = event['start_time']
+                td = event['end_time']
+      - else
+        p.no-events No events found.
+
   style
     | .account-info {
     |   max-width: 700px;
@@ -161,6 +181,39 @@ h1 Account Overview
     | .admin-section li, .organizer-section li {
     |   margin: 0.5rem 0;
     |   color: #555;
+    | }
+    | .events-section {
+    |   background-color: white;
+    |   padding: 2rem;
+    |   border-radius: 8px;
+    |   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    |   margin-bottom: 2rem;
+    | }
+    | .events-section h2 {
+    |   margin-top: 0;
+    |   color: #2c3e50;
+    |   margin-bottom: 1rem;
+    | }
+    | .events-table {
+    |   width: 100%;
+    |   border-collapse: collapse;
+    | }
+    | .events-table th, .events-table td {
+    |   text-align: left;
+    |   padding: 0.75rem 1rem;
+    |   border-bottom: 1px solid #eee;
+    | }
+    | .events-table th {
+    |   font-weight: 600;
+    |   color: #2c3e50;
+    |   background-color: #f8f9fa;
+    | }
+    | .events-table tr:last-child td {
+    |   border-bottom: none;
+    | }
+    | .no-events {
+    |   color: #888;
+    |   font-style: italic;
     | }
 
 - else

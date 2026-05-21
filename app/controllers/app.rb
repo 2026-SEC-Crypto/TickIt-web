@@ -277,6 +277,12 @@ module TickIt
             return r.redirect '/login'
           end
 
+          begin
+            @events = FetchEvents.new(token: @current_user.auth_token).call
+          rescue FetchEvents::Error
+            @events = []
+          end
+
           render_with_layout 'accounts/overview'
         end
       end
