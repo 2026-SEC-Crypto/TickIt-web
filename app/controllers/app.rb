@@ -267,8 +267,8 @@ module TickIt
 
           # Create the account in the database
           Account.create(
-            username: pending_registration[:username],
-            email: pending_registration[:email],
+            username: pending_registration&.[](:username),
+            email: pending_registration&.[](:email),
             password: BCrypt::Password.create(password)
           )
 
