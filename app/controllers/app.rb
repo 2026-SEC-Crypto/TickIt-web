@@ -151,51 +151,74 @@ module TickIt
         end
       end
 
-      r.on 'register' do
-        r.get do
-          if @secure_session && @secure_session.get(:account_id)
-            r.redirect '/account'
-          else
-            render_with_layout 'sessions/register'
-          end
-        end
+      # r.on 'register' do
+      #   r.get do
+      #     if @secure_session && @secure_session.get(:account_id)
+      #       r.redirect '/account'
+      #     else
+      #       render_with_layout 'sessions/register'
+      #     end
+      #   end
 
+      #   r.post do
+      #     email = r.params['email']
+      #     password = r.params['password']
+      #     password_confirm = r.params['password_confirm']
+
+      #     if email.to_s.strip.empty?
+      #       response.status = 400
+      #       @error = 'Email is required'
+      #       return render_with_layout 'sessions/register'
+      #     end
+
+      #     if password.to_s.empty?
+      #       response.status = 400
+      #       @error = 'Password is required'
+      #       return render_with_layout 'sessions/register'
+      #     end
+
+      #     if password != password_confirm
+      #       response.status = 400
+      #       @error = 'Passwords do not match'
+      #       return render_with_layout 'sessions/register'
+      #     end
+
+      #     begin
+      #       user = CreateAccount.new.call(email: email, password: password)
+      #     rescue CreateAccount::InvalidAccount => e
+      #       response.status = e.message.include?('already exists') ? 409 : 400
+      #       @error = e.message
+      #       return render_with_layout 'sessions/register'
+      #     end
+
+      #     establish_session(user)
+      #     SessionService.log_user_action(user.id, 'register')
+      #     flash['notice'] = 'Account created successfully! Welcome to TickIt.'
+      #     flash['error'] = nil
+      #     r.redirect '/account'
+      #   end
+      # end
+      r.on 'register' do
         r.post do
           email = r.params['email']
+          username = r.params['username']
           password = r.params['password']
-          password_confirm = r.params['password_confirm']
 
-          if email.to_s.strip.empty?
+          if email.to_s.strip.empty? || username.to_s.strip.empty? || password.to_s.empty?
             response.status = 400
-            @error = 'Email is required'
+            @error = 'All fields are required'
             return render_with_layout 'sessions/register'
           end
 
-          if password.to_s.empty?
-            response.status = 400
-            @error = 'Password is required'
-            return render_with_layout 'sessions/register'
-          end
+          # Generate verification token
+          token = RegistrationToken.generate(username, email)
+          verification_url = "#{request.base_url}/verify_registration?token=#{token}"
 
-          if password != password_confirm
-            response.status = 400
-            @error = 'Passwords do not match'
-            return render_with_layout 'sessions/register'
-          end
+          # Send verification email
+          EmailService.new.send_verification_email(email, verification_url)
 
-          begin
-            user = CreateAccount.new.call(email: email, password: password)
-          rescue CreateAccount::InvalidAccount => e
-            response.status = e.message.include?('already exists') ? 409 : 400
-            @error = e.message
-            return render_with_layout 'sessions/register'
-          end
-
-          establish_session(user)
-          SessionService.log_user_action(user.id, 'register')
-          flash['notice'] = 'Account created successfully! Welcome to TickIt.'
-          flash['error'] = nil
-          r.redirect '/account'
+          flash['notice'] = 'A verification email has been sent. Please check your inbox.'
+          r.redirect '/'
         end
       end
 
@@ -226,15 +249,33 @@ module TickIt
         end
       end
 
+      # r.on 'verify_registration' do
+      #   token = r.params['token']
+      #   payload = RegistrationToken.decode(token)
+
+      #   if payload
+      #     session[:pending_registration] = payload
+      #     render_with_layout 'sessions/register'
+      #   else
+      #     flash[:error] = 'Invalid or expired verification link.'
+      #     r.redirect '/'
+      #   end
+      # end
       r.on 'verify_registration' do
         token = r.params['token']
         payload = RegistrationToken.decode(token)
 
         if payload
-          session[:pending_registration] = payload
-          render_with_layout 'sessions/register'
+          # Store the account in the database
+          CreateAccount.new.call(
+            username: payload[:username],
+            email: payload[:email],
+            password: 'default_password' # Replace with actual password logic
+          )
+          flash['notice'] = 'Your email has been verified. You can now log in.'
+          r.redirect '/login'
         else
-          flash[:error] = 'Invalid or expired verification link.'
+          flash['error'] = 'Invalid or expired verification link.'
           r.redirect '/'
         end
       end

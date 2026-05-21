@@ -4,21 +4,23 @@ require_relative 'secure_message'
 class RegistrationToken
   TOKEN_EXPIRY = 3600 # 1 hour in seconds
 
+  # Generate a token with username, email, and expiry
   def self.generate(username, email)
     payload = {
       username: username,
       email: email,
-      exp: Time.now.to_i + TOKEN_EXPIRY
+      exp: Time.now.to_i + TOKEN_EXPIRY # Add expiry time
     }
-    SecureMessage.encrypt(payload)
+    SecureMessage.encrypt(payload) # Encrypt the payload
   end
 
+  # Decode a token and verify its validity
   def self.decode(token)
-    payload = SecureMessage.decrypt(token)
-    return nil if payload[:exp] < Time.now.to_i
+    payload = SecureMessage.decrypt(token) # Decrypt the token
+    return nil if payload[:exp] < Time.now.to_i # Check if the token is expired
 
-    payload
+    payload # Return the valid payload
   rescue StandardError
-    nil
+    nil # Return nil if decryption fails or token is invalid
   end
 end
