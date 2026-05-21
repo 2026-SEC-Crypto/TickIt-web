@@ -168,16 +168,28 @@ module TickIt
             return render_with_layout 'sessions/register'
           end
 
-          # Check if username and email are available
-          if Account.exists?(username: username) || Account.exists?(email: email)
-            response.status = 409
-            @error = 'Username or email already exists'
+          # Safeguard for Account.exists?
+          begin
+            if Account.exists?(username: username) || Account.exists?(email: email)
+              response.status = 409
+              @error = 'Username or email already exists'
+              return render_with_layout 'sessions/register'
+            end
+          rescue StandardError => e
+            response.status = 500
+            @error = "Database error: #{e.message}"
             return render_with_layout 'sessions/register'
           end
 
           # Generate verification token
-          token = RegistrationToken.generate(username, email)
-          verification_url = "#{request.base_url}/verify_registration?token=#{token}"
+          begin
+            token = RegistrationToken.generate(username, email)
+            verification_url = "#{request.base_url}/verify_registration?token=#{token}"
+          rescue StandardError => e
+            response.status = 500
+            @error = "Failed to generate verification token: #{e.message}"
+            return render_with_layout 'sessions/register'
+          end
 
           # Send verification email using EmailService
           begin
