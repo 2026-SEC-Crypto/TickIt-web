@@ -151,54 +151,11 @@ module TickIt
         end
       end
 
-      # r.on 'register' do
-      #   r.get do
-      #     if @secure_session && @secure_session.get(:account_id)
-      #       r.redirect '/account'
-      #     else
-      #       render_with_layout 'sessions/register'
-      #     end
-      #   end
-
-      #   r.post do
-      #     email = r.params['email']
-      #     password = r.params['password']
-      #     password_confirm = r.params['password_confirm']
-
-      #     if email.to_s.strip.empty?
-      #       response.status = 400
-      #       @error = 'Email is required'
-      #       return render_with_layout 'sessions/register'
-      #     end
-
-      #     if password.to_s.empty?
-      #       response.status = 400
-      #       @error = 'Password is required'
-      #       return render_with_layout 'sessions/register'
-      #     end
-
-      #     if password != password_confirm
-      #       response.status = 400
-      #       @error = 'Passwords do not match'
-      #       return render_with_layout 'sessions/register'
-      #     end
-
-      #     begin
-      #       user = CreateAccount.new.call(email: email, password: password)
-      #     rescue CreateAccount::InvalidAccount => e
-      #       response.status = e.message.include?('already exists') ? 409 : 400
-      #       @error = e.message
-      #       return render_with_layout 'sessions/register'
-      #     end
-
-      #     establish_session(user)
-      #     SessionService.log_user_action(user.id, 'register')
-      #     flash['notice'] = 'Account created successfully! Welcome to TickIt.'
-      #     flash['error'] = nil
-      #     r.redirect '/account'
-      #   end
-      # end
       r.on 'register' do
+        r.get do
+          render_with_layout 'sessions/register'
+        end
+
         r.post do
           username = r.params['username']
           email = r.params['email']
@@ -221,8 +178,14 @@ module TickIt
           token = RegistrationToken.generate(username, email)
           verification_url = "#{request.base_url}/verify_registration?token=#{token}"
 
-          # Send verification email
-          EmailService.new.send_verification_email(email, verification_url)
+          # Send verification email using EmailService
+          begin
+            EmailService.new.send_verification_email(email, verification_url)
+          rescue StandardError => e
+            response.status = 500
+            @error = "Failed to send verification email: #{e.message}"
+            return render_with_layout 'sessions/register'
+          end
 
           flash['notice'] = 'A verification email has been sent. Please check your inbox.'
           r.redirect '/'
