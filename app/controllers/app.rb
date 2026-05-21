@@ -253,7 +253,7 @@ module TickIt
       render_with_layout 'errors/not_found'
     end
 
-    route('register') do
+    route on 'register' do
       username = request.params['username']
       email = request.params['email']
       password = request.params['password']
@@ -274,7 +274,7 @@ module TickIt
       end
     end
 
-    route('register_initial') do
+    route on 'register_initial' do
       username = request.params['username']
       email = request.params['email']
 
