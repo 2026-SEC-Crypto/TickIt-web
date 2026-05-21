@@ -169,19 +169,6 @@ module TickIt
             return render_with_layout 'sessions/register_initial'
           end
 
-          # Check availability through API
-          begin
-            unless CreateAccount.new.check_availability(username: username, email: email)
-              response.status = 409
-              @error = 'Username or email is already taken'
-              return render_with_layout 'sessions/register_initial'
-            end
-          rescue CreateAccount::InvalidAccount => e
-            response.status = 500
-            @error = "Availability check failed: #{e.message}"
-            return render_with_layout 'sessions/register_initial'
-          end
-
           # Generate verification token
           begin
             token = RegistrationToken.generate(username, email)

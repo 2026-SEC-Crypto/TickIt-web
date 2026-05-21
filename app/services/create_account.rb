@@ -48,21 +48,10 @@ module TickIt
     end
 
     def check_availability(username:, email:)
-      response = HTTP.get(
-        "#{api_url}/auth/check_availability",
-        params: { username: username, email: email }
-      )
-
-      case response.status
-      when 200
-        true
-      when 400, 409
-        false
-      else
-        raise InvalidAccount, "API error: #{response.status}"
-      end
-    rescue HTTP::Error => e
-      raise InvalidAccount, "Could not reach API: #{e.message}"
+      # Removed - API will handle duplicate detection on account creation
+      # Always return true to allow registration flow to proceed
+      # API will return 409 if email/username already exists
+      true
     end
 
     def generate_verification_url(username:, email:)
