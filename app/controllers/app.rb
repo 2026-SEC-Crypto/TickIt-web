@@ -153,6 +153,7 @@ module TickIt
 
       r.on 'register' do
         r.get do
+          @error = nil # Ensure @error is initialized to avoid nil issues
           render_with_layout 'sessions/register'
         end
 
