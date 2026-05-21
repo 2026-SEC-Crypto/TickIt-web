@@ -151,10 +151,11 @@ module TickIt
         end
       end
 
+      # Registration workflow: 1. User enters email/username -> 2. Verification email sent -> 3. User clicks link -> 4. Sets password
       r.on 'register' do
         r.get do
-          @error = nil # Ensure @error is initialized to avoid nil issues
-          render_with_layout 'sessions/register'
+          # Show registration form asking for email and username
+          render_with_layout 'sessions/register_initial'
         end
 
         r.post do
@@ -165,20 +166,20 @@ module TickIt
           if username.to_s.strip.empty? || email.to_s.strip.empty?
             response.status = 400
             @error = 'Username and email are required'
-            return render_with_layout 'sessions/register'
+            return render_with_layout 'sessions/register_initial'
           end
 
-          # Safeguard for Account.exists?
+          # Check availability through API
           begin
-            if Account.exists?(username: username) || Account.exists?(email: email)
+            unless CreateAccount.new.check_availability(username: username, email: email)
               response.status = 409
-              @error = 'Username or email already exists'
-              return render_with_layout 'sessions/register'
+              @error = 'Username or email is already taken'
+              return render_with_layout 'sessions/register_initial'
             end
-          rescue StandardError => e
+          rescue CreateAccount::InvalidAccount => e
             response.status = 500
-            @error = "Database error: #{e.message}"
-            return render_with_layout 'sessions/register'
+            @error = "Availability check failed: #{e.message}"
+            return render_with_layout 'sessions/register_initial'
           end
 
           # Generate verification token
@@ -188,106 +189,91 @@ module TickIt
           rescue StandardError => e
             response.status = 500
             @error = "Failed to generate verification token: #{e.message}"
-            return render_with_layout 'sessions/register'
+            return render_with_layout 'sessions/register_initial'
           end
 
-          # Send verification email using EmailService
+          # Send verification email
           begin
             EmailService.new.send_verification_email(email, verification_url)
           rescue StandardError => e
             response.status = 500
             @error = "Failed to send verification email: #{e.message}"
-            return render_with_layout 'sessions/register'
+            return render_with_layout 'sessions/register_initial'
           end
 
-          flash['notice'] = 'A verification email has been sent. Please check your inbox.'
-          r.redirect '/'
+          flash['notice'] = 'Verification email sent! Please check your inbox and click the verification link.'
+          r.redirect '/home'
         end
       end
 
-      r.on 'register_initial' do
-        r.post do
-          username = r.params['username']
-          email = r.params['email']
-
-          begin
-            create_account_service = CreateAccount.new
-
-            unless create_account_service.check_availability(username: username, email: email)
-              flash[:error] = 'Username or email is already taken.'
-              r.redirect '/register_initial'
-            end
-
-            verification_url = create_account_service.generate_verification_url(username: username, email: email)
-
-            # Mock sending email (to be implemented later)
-            puts "Verification email sent to #{email} with URL: #{verification_url}"
-
-            flash[:notice] = 'A verification email has been sent. Please check your inbox.'
-            r.redirect '/'
-          rescue CreateAccount::InvalidAccount => e
-            flash[:error] = e.message
-            r.redirect '/register_initial'
-          end
-        end
-      end
-
-      # r.on 'verify_registration' do
-      #   token = r.params['token']
-      #   payload = RegistrationToken.decode(token)
-
-      #   if payload
-      #     session[:pending_registration] = payload
-      #     render_with_layout 'sessions/register'
-      #   else
-      #     flash[:error] = 'Invalid or expired verification link.'
-      #     r.redirect '/'
-      #   end
-      # end
+      # Handle email verification link click
       r.on 'verify_registration' do
-        token = r.params['token']
-        payload = RegistrationToken.decode(token)
+        r.get do
+          token = r.params['token']
 
-        if payload
-          # Store the username and email in the session temporarily
-          session[:pending_registration] = { username: payload[:username], email: payload[:email] }
+          # Decode and validate token
+          payload = RegistrationToken.decode(token)
+
+          unless payload
+            response.status = 401
+            flash['error'] = 'Invalid or expired verification link. Please register again.'
+            return r.redirect '/register'
+          end
+
+          # Store temporarily in session (will be cleared after password set)
+          session[:pending_registration] = {
+            username: payload['username'] || payload[:username],
+            email: payload['email'] || payload[:email]
+          }
+
+          # Show password entry form
           render_with_layout 'sessions/set_password'
-        else
-          flash['error'] = 'Invalid or expired verification link.'
-          r.redirect '/'
         end
       end
 
+      # Handle password entry after email verification
       r.on 'set_password' do
         r.post do
           password = r.params['password']
           password_confirm = r.params['password_confirm']
 
           # Validate input
-          if password.to_s.strip.empty? || password != password_confirm
+          if password.to_s.strip.empty? || password_confirm.to_s.strip.empty?
             response.status = 400
-            @error = 'Passwords do not match or are empty'
+            @error = 'Passwords cannot be empty'
             return render_with_layout 'sessions/set_password'
           end
 
-          # Retrieve pending registration details
+          if password != password_confirm
+            response.status = 400
+            @error = 'Passwords do not match'
+            return render_with_layout 'sessions/set_password'
+          end
+
+          # Retrieve pending registration from session
           pending_registration = session[:pending_registration]
           if pending_registration.nil?
             flash['error'] = 'Session expired. Please register again.'
-            r.redirect '/register'
+            return r.redirect '/register'
           end
 
-          # Create the account in the database
-          Account.create(
-            username: pending_registration&.[](:username),
-            email: pending_registration&.[](:email),
-            password: BCrypt::Password.create(password)
-          )
+          # Create account through API
+          begin
+            user = CreateAccount.new.call(
+              email: pending_registration[:email],
+              password: password
+            )
 
-          # Clear the session and redirect to login
-          session[:pending_registration] = nil
-          flash['notice'] = 'Account created successfully! You can now log in.'
-          r.redirect '/login'
+            # Clear session
+            session[:pending_registration] = nil
+
+            flash['notice'] = 'Account created successfully! Please log in.'
+            r.redirect '/login'
+          rescue CreateAccount::InvalidAccount => e
+            response.status = 400
+            @error = "Account creation failed: #{e.message}"
+            render_with_layout 'sessions/set_password'
+          end
         end
       end
 

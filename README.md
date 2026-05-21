@@ -13,6 +13,7 @@ TickIt is a backend API designed for a "Secure Physical Attendance & Ticket Vali
 - Ruby 3.x
 - Bundler
 - Slim gem (for view rendering)
+- Mailgun account (for email verification)
 
 ### Quick Start
 
