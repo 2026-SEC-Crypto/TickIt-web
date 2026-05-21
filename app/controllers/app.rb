@@ -209,8 +209,8 @@ module TickIt
 
           # Store temporarily in session (will be cleared after password set)
           session[:pending_registration] = {
-            username: payload['username'] || payload[:username],
-            email: payload['email'] || payload[:email]
+            username: payload['username'],
+            email: payload['email']
           }
 
           # Show password entry form

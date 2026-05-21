@@ -16,8 +16,15 @@ class RegistrationToken
 
   # Decode a token and verify its validity
   def self.decode(token)
+    return nil unless token
+
     payload = SecureMessage.decrypt(token) # Decrypt the token
-    return nil if payload[:exp] < Time.now.to_i # Check if the token is expired
+    return nil if payload.nil?
+    
+    # Check expiry using string key (JSON uses string keys, not symbols)
+    exp_time = payload['exp'] || payload[:exp]
+    return nil if exp_time.nil?
+    return nil if exp_time < Time.now.to_i # Check if the token is expired
 
     payload # Return the valid payload
   rescue StandardError
