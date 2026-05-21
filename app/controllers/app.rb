@@ -200,13 +200,20 @@ module TickIt
       # end
       r.on 'register' do
         r.post do
-          email = r.params['email']
           username = r.params['username']
-          password = r.params['password']
+          email = r.params['email']
 
-          if email.to_s.strip.empty? || username.to_s.strip.empty? || password.to_s.empty?
+          # Validate input
+          if username.to_s.strip.empty? || email.to_s.strip.empty?
             response.status = 400
-            @error = 'All fields are required'
+            @error = 'Username and email are required'
+            return render_with_layout 'sessions/register'
+          end
+
+          # Check if username and email are available
+          if Account.exists?(username: username) || Account.exists?(email: email)
+            response.status = 409
+            @error = 'Username or email already exists'
             return render_with_layout 'sessions/register'
           end
 
@@ -266,17 +273,45 @@ module TickIt
         payload = RegistrationToken.decode(token)
 
         if payload
-          # Store the account in the database
-          CreateAccount.new.call(
-            username: payload[:username],
-            email: payload[:email],
-            password: 'default_password' # Replace with actual password logic
-          )
-          flash['notice'] = 'Your email has been verified. You can now log in.'
-          r.redirect '/login'
+          # Store the username and email in the session temporarily
+          session[:pending_registration] = { username: payload[:username], email: payload[:email] }
+          render_with_layout 'sessions/set_password'
         else
           flash['error'] = 'Invalid or expired verification link.'
           r.redirect '/'
+        end
+      end
+
+      r.on 'set_password' do
+        r.post do
+          password = r.params['password']
+          password_confirm = r.params['password_confirm']
+
+          # Validate input
+          if password.to_s.strip.empty? || password != password_confirm
+            response.status = 400
+            @error = 'Passwords do not match or are empty'
+            return render_with_layout 'sessions/set_password'
+          end
+
+          # Retrieve pending registration details
+          pending_registration = session[:pending_registration]
+          if pending_registration.nil?
+            flash['error'] = 'Session expired. Please register again.'
+            r.redirect '/register'
+          end
+
+          # Create the account in the database
+          Account.create(
+            username: pending_registration[:username],
+            email: pending_registration[:email],
+            password: BCrypt::Password.create(password)
+          )
+
+          # Clear the session and redirect to login
+          session[:pending_registration] = nil
+          flash['notice'] = 'Account created successfully! You can now log in.'
+          r.redirect '/login'
         end
       end
 
