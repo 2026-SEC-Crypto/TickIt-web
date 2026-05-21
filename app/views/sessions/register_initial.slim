@@ -1,0 +1,13 @@
+h2 Register Your Account
+
+- if flash[:error]
+  p.error = flash[:error]
+
+form action="/register_initial" method="post"
+  label for="username" Username:
+  input type="text" name="username" id="username" required
+
+  label for="email" Email:
+  input type="email" name="email" id="email" required
+
+  button type="submit" Submit
