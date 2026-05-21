@@ -10,8 +10,8 @@ h2 Set Your Password
   p.error = flash[:error]
 
 form method="post" action="/register"
-  input type="hidden" name="username" value=session[:pending_registration][:username]
-  input type="hidden" name="email" value=session[:pending_registration][:email]
+  input type="hidden" name="username" value=(session[:pending_registration]&.[](:username))
+  input type="hidden" name="email" value=(session[:pending_registration]&.[](:email))
 
   .form-group
     label for="password" Password:
