@@ -7,12 +7,18 @@ module TickIt
     class NotFound < StandardError; end
 
     def call(id:)
-      response = HTTP.get("#{api_url}/accounts/#{id}")
+      response = http_client.get("#{api_url}/accounts/#{id}")
 
       case response.status
       when 200
         body = parse_json(response.body)
-        SessionUser.from_api_hash(body.fetch('account'))
+        data = body.fetch('account').transform_keys(&:to_sym)
+        Account.new(
+          id: data[:id],
+          email: data[:email],
+          role: data[:role] || 'member',
+          auth_token: @token
+        )
       when 404
         raise NotFound, 'Account not found'
       else

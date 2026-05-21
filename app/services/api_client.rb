@@ -15,12 +15,22 @@ module TickIt
       end
     end
 
+    def initialize(token: nil)
+      @token = token
+    end
+
     def self.api_url
       ENV.fetch('API_URL', 'http://localhost:9292/api/v1')
     end
 
     def api_url
       self.class.api_url
+    end
+
+    def http_client
+      return HTTP.auth("Bearer #{@token}") if @token
+
+      HTTP
     end
 
     def parse_json(body)

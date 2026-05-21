@@ -8,7 +8,7 @@ module TickIt
     class InvalidAccount < StandardError; end
 
     def call(email:, password:, role: 'member')
-      response = HTTP.post(
+      response = http_client.post(
         "#{api_url}/auth/register",
         json: { email: email, password: password, role: role }
       )
@@ -16,7 +16,7 @@ module TickIt
       case response.status
       when 201
         body = parse_json(response.body)
-        SessionUser.from_api_hash(body.fetch('account'))
+        Account.from_api_hash(body.fetch('account'))
       when 400, 409
         raise InvalidAccount, error_message(response.body, 'Registration failed')
       else
@@ -28,7 +28,7 @@ module TickIt
     end
 
     def call_with_validation_flag(username:, email:, password: nil, validated: false)
-      response = HTTP.post(
+      response = http_client.post(
         "#{api_url}/auth/register",
         json: { username: username, email: email, password: password, validated: validated }
       )
@@ -36,7 +36,7 @@ module TickIt
       case response.status
       when 201
         body = parse_json(response.body)
-        SessionUser.from_api_hash(body.fetch('account'))
+        Account.from_api_hash(body.fetch('account'))
       when 400, 409
         raise InvalidAccount, error_message(response.body, 'Registration failed')
       else

@@ -72,27 +72,12 @@ module TickIt
     end
 
     def establish_session(user)
-      @secure_session.set(:account_id, user.id)
-      @secure_session.set(:email, user.email)
-      @secure_session.set(:role, user.role)
+      @current_session.save(user)
       @current_user = user
     end
 
-    def load_current_user_from_session
-      account_id = @secure_session.get(:account_id)
-      return nil unless account_id
-
-      SessionUser.new(
-        id: account_id,
-        email: @secure_session.get(:email),
-        role: @secure_session.get(:role) || 'member'
-      )
-    end
-
     def clear_session!
-      @secure_session.delete(:account_id)
-      @secure_session.delete(:email)
-      @secure_session.delete(:role)
+      @current_session.clear!
       @current_user = nil
     end
 
@@ -100,7 +85,8 @@ module TickIt
       r.redirect_http_to_https if Web.environment == :production
 
       @secure_session = SecureSession.new(session)
-      @current_user = load_current_user_from_session
+      @current_session = CurrentSession.new(@secure_session)
+      @current_user = @current_session.load
       @flash = flash
       make_authorization_available
 
@@ -112,7 +98,7 @@ module TickIt
 
       r.on 'login' do
         r.get do
-          if @secure_session.get(:account_id)
+          if @current_user
             r.redirect '/account'
           else
             render_with_layout 'sessions/login'
@@ -242,7 +228,7 @@ module TickIt
             username: r.params['username'],
             email: r.params['email']
           }
-          
+
           if pending_registration[:email].nil? || pending_registration[:email].empty?
             flash['error'] = 'Session expired. Please register again.'
             return r.redirect '/register'
@@ -250,7 +236,7 @@ module TickIt
 
           # Create account through API
           begin
-            user = CreateAccount.new.call(
+            CreateAccount.new.call(
               email: pending_registration[:email],
               password: password
             )
@@ -270,14 +256,14 @@ module TickIt
 
       r.on 'account' do
         r.get do
-          unless @secure_session.get(:account_id)
+          unless @current_user
             response.status = 403
             flash['error'] = 'You must be logged in to access your account'
             return r.redirect '/login'
           end
 
           begin
-            user = FetchAccount.new.call(id: @secure_session.get(:account_id))
+            user = FetchAccount.new(token: @current_user.auth_token).call(id: @current_user.id)
             establish_session(user)
             make_authorization_available
           rescue FetchAccount::NotFound
@@ -296,8 +282,7 @@ module TickIt
       end
 
       r.on 'logout' do
-        account_id = @secure_session.get(:account_id)
-        SessionService.log_user_action(account_id, 'logout') if account_id
+        SessionService.log_user_action(@current_user.id, 'logout') if @current_user
 
         clear_session!
         flash['notice'] = 'You have been successfully logged out. See you soon!'

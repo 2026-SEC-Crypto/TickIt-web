@@ -7,7 +7,7 @@ module TickIt
     class AuthenticationFailed < StandardError; end
 
     def call(email:, password:)
-      response = HTTP.post(
+      response = http_client.post(
         "#{api_url}/auth/authenticate",
         json: { email: email, password: password }
       )
@@ -15,7 +15,7 @@ module TickIt
       case response.status
       when 200
         body = parse_json(response.body)
-        SessionUser.from_api_hash(body.fetch('account'))
+        Account.from_api_hash(body.fetch('account'))
       when 403
         nil
       when 400
