@@ -21,11 +21,13 @@ module TickIt
       when 400
         raise AuthenticationFailed, error_message(response.body, 'Invalid request')
       else
-        raise Error, error_message(response.body, "Authentication failed (status: #{response.status})"),
-              status: response.status, body: response.body.to_s
+        raise Error.new(
+          error_message(response.body, "Authentication failed (status: #{response.status})"),
+          status: response.status, body: response.body.to_s
+        )
       end
     rescue HTTP::Error => e
-      raise Error, "Could not reach API: #{e.message}"
+      raise Error.new("Could not reach API: #{e.message}")
     end
   end
 end
