@@ -7,10 +7,10 @@ module TickIt
   class CreateAccount < ApiClient
     class InvalidAccount < StandardError; end
 
-    def call(email:, password:, role: 'member')
+    def call(email:, password:, role: 'member', username: nil)
       response = http_client.post(
         "#{api_url}/auth/register",
-        json: { email: email, password: password, role: role }
+        json: { email: email, password: password, role: role, username: username }
       )
 
       case response.status

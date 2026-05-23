@@ -128,7 +128,7 @@ module TickIt
           if user
             establish_session(user)
             SessionService.log_user_action(user.id, 'login')
-            flash['notice'] = "Welcome back, #{user.email}!"
+            flash['notice'] = "Welcome back, #{user.username || user.email}!"
             flash['error'] = nil
             r.redirect '/account'
           else
@@ -226,7 +226,8 @@ module TickIt
           begin
             CreateAccount.new.call(
               email: pending_registration[:email],
-              password: form.values[:password]
+              password: form.values[:password],
+              username: pending_registration[:username]
             )
 
             session[:pending_registration] = nil

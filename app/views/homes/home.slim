@@ -3,8 +3,8 @@ h1 Welcome to TickIt
 - if @current_user
   .user-greeting
     p
-      | Hello, 
-      strong = @current_user.email
+      | Hello,
+      strong = @current_user.username || @current_user.email
       | ! You are logged in.
   
   .content

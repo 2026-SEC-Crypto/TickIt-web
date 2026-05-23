@@ -3,10 +3,11 @@
 module TickIt
   # Represents a logged-in account, including the auth token issued by the API.
   class Account
-    attr_reader :id, :email, :role, :auth_token
+    attr_reader :id, :username, :email, :role, :auth_token
 
-    def initialize(id:, email:, role:, auth_token: nil)
+    def initialize(id:, email:, role:, auth_token: nil, username: nil)
       @id = id
+      @username = username
       @email = email
       @role = role
       @auth_token = auth_token
@@ -24,6 +25,7 @@ module TickIt
       data = hash.transform_keys(&:to_sym)
       new(
         id: data[:id],
+        username: data[:username],
         email: data[:email],
         role: data[:role] || 'member',
         auth_token: data[:auth_token]
@@ -34,6 +36,7 @@ module TickIt
       data = hash.transform_keys(&:to_sym)
       new(
         id: data[:id],
+        username: data[:username],
         email: data[:email],
         role: data[:role] || 'member',
         auth_token: token

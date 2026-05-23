@@ -9,6 +9,7 @@ module TickIt
 
     def save(account)
       @secure_session.set(:account_id, account.id)
+      @secure_session.set(:username, account.username)
       @secure_session.set(:email, account.email)
       @secure_session.set(:role, account.role)
       @secure_session.set(:auth_token, account.auth_token)
@@ -20,6 +21,7 @@ module TickIt
 
       Account.new(
         id: account_id,
+        username: @secure_session.get(:username),
         email: @secure_session.get(:email),
         role: @secure_session.get(:role) || 'member',
         auth_token: @secure_session.get(:auth_token)

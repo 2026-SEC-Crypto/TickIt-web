@@ -6,6 +6,10 @@ h1 Account Overview
       h2 Account Details
       
       .info-item
+        span.label Username:
+        span.value = @current_user.username || '(not set)'
+
+      .info-item
         span.label Email:
         span.value = @current_user.email
       
