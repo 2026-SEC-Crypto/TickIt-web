@@ -106,17 +106,19 @@ module TickIt
         end
 
         r.post do
-          email = r.params['email']
-          password = r.params['password']
+          form = LoginForm.new.call(r.params)
 
-          if email.to_s.strip.empty? || password.to_s.empty?
+          unless form.success?
             response.status = 400
-            @error = 'Email and password are required'
+            @error = form.errors.to_h.values.flatten.first
             return render_with_layout 'sessions/login'
           end
 
           begin
-            user = AuthenticateAccount.new.call(email: email, password: password)
+            user = AuthenticateAccount.new.call(
+              email: form.values[:email],
+              password: form.values[:password]
+            )
           rescue AuthenticateAccount::Error => e
             response.status = 503
             flash['error'] = e.message
@@ -145,19 +147,16 @@ module TickIt
         end
 
         r.post do
-          username = r.params['username']
-          email = r.params['email']
+          form = RegisterForm.new.call(r.params)
 
-          # Validate input
-          if username.to_s.strip.empty? || email.to_s.strip.empty?
+          unless form.success?
             response.status = 400
-            @error = 'Username and email are required'
+            @error = form.errors.to_h.values.flatten.first
             return render_with_layout 'sessions/register_initial'
           end
 
-          # Generate verification token
           begin
-            token = RegistrationToken.generate(username, email)
+            token = RegistrationToken.generate(form.values[:username], form.values[:email])
             verification_url = "#{request.base_url}/verify_registration?token=#{token}"
           rescue StandardError => e
             response.status = 500
@@ -165,9 +164,8 @@ module TickIt
             return render_with_layout 'sessions/register_initial'
           end
 
-          # Send verification email
           begin
-            EmailService.new.send_verification_email(email, verification_url)
+            EmailService.new.send_verification_email(form.values[:email], verification_url)
           rescue StandardError => e
             response.status = 500
             @error = "Failed to send verification email: #{e.message}"
@@ -207,23 +205,14 @@ module TickIt
       # Handle password entry after email verification
       r.on 'set_password' do
         r.post do
-          password = r.params['password']
-          password_confirm = r.params['password_confirm']
+          form = SetPasswordForm.new.call(r.params)
 
-          # Validate input
-          if password.to_s.strip.empty? || password_confirm.to_s.strip.empty?
+          unless form.success?
             response.status = 400
-            @error = 'Passwords cannot be empty'
+            @error = form.errors.to_h.values.flatten.first
             return render_with_layout 'sessions/set_password'
           end
 
-          if password != password_confirm
-            response.status = 400
-            @error = 'Passwords do not match'
-            return render_with_layout 'sessions/set_password'
-          end
-
-          # Retrieve pending registration from session or form params (fallback)
           pending_registration = session[:pending_registration] || {
             username: r.params['username'],
             email: r.params['email']
@@ -234,16 +223,13 @@ module TickIt
             return r.redirect '/register'
           end
 
-          # Create account through API
           begin
             CreateAccount.new.call(
               email: pending_registration[:email],
-              password: password
+              password: form.values[:password]
             )
 
-            # Clear session
             session[:pending_registration] = nil
-
             flash['notice'] = 'Account created successfully! Please log in.'
             r.redirect '/login'
           rescue CreateAccount::InvalidAccount => e

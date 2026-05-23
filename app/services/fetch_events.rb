@@ -10,7 +10,7 @@ module TickIt
       case response.status
       when 200
         body = parse_json(response.body)
-        body.fetch('events', [])
+        body.fetch('events', []).map { |e| Event.from_api_hash(e) }
       else
         raise Error.new(
           error_message(response.body, "Failed to load events (status: #{response.status})"),

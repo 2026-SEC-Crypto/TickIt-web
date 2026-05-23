@@ -12,13 +12,7 @@ module TickIt
       case response.status
       when 200
         body = parse_json(response.body)
-        data = body.fetch('account').transform_keys(&:to_sym)
-        Account.new(
-          id: data[:id],
-          email: data[:email],
-          role: data[:role] || 'member',
-          auth_token: @token
-        )
+        Account.from_api_hash_with_token(body.fetch('account'), token: @token)
       when 404
         raise NotFound, 'Account not found'
       else

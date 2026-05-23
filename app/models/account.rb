@@ -29,5 +29,15 @@ module TickIt
         auth_token: data[:auth_token]
       )
     end
+
+    def self.from_api_hash_with_token(hash, token:)
+      data = hash.transform_keys(&:to_sym)
+      new(
+        id: data[:id],
+        email: data[:email],
+        role: data[:role] || 'member',
+        auth_token: token
+      )
+    end
   end
 end

@@ -16,7 +16,7 @@ module TickIt
       when 200
         body = parse_json(response.body)
         Account.from_api_hash(body.fetch('account'))
-      when 403
+      when 401
         nil
       when 400
         raise AuthenticationFailed, error_message(response.body, 'Invalid request')

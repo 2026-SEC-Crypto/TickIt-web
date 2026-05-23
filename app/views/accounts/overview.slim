@@ -64,10 +64,10 @@ h1 Account Overview
           tbody
             - @events.each do |event|
               tr
-                td = event['name']
-                td = event['location']
-                td = event['start_time']
-                td = event['end_time']
+                td = event.name
+                td = event.location
+                td = event.start_time
+                td = event.end_time
       - else
         p.no-events No events found.
 
