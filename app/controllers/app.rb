@@ -26,11 +26,11 @@ module TickIt
     if ENV.fetch('RACK_ENV', 'development') == 'production'
       require 'redis'
       require 'rack/session/redis'
-      ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0')
-      plugin :sessions,
-             key: '_tickit_web_session',
-             secret: SESSION_SECRET,
-             expire_after: 2_592_000
+      use Rack::Session::Redis,
+          redis_server: ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0'),
+          key: '_tickit_web_session',
+          secret: SESSION_SECRET,
+          expire_after: 2_592_000
     else
       plugin :sessions,
              key: '_tickit_web_session',
