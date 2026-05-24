@@ -25,17 +25,22 @@ h1 Account Overview
 
     .account-actions
       h2 Actions
-      
       ul
         li
           a href="/home" Back to Home
-        - if @is_organizer_or_admin
+        - if @policy_summary.dig('event', 'create')
           li
-            a href="#admin-panel" Admin Features
+            a href="/events/new" Create Event
+        - if @policy_summary.dig('account', 'view_all')
+          li
+            a href="/admin/accounts" View All Accounts
+        - if @policy_summary.dig('account', 'update_own')
+          li
+            a href="/account/edit" Edit My Account
         li
           a href="/logout" Logout
 
-    - if @is_admin
+    - if @policy_summary.dig('account', 'view_all')
       .admin-section
         h2 Admin Features
         p You have administrator access and can manage all events and user accounts.
@@ -45,7 +50,7 @@ h1 Account Overview
           li Monitor security logs
           li Configure system settings
 
-    - if @is_organizer_or_admin
+    - if @policy_summary.dig('event', 'create')
       .organizer-section
         h2 Organizer Features
         p You can create and manage events.

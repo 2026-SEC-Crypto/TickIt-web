@@ -26,6 +26,9 @@ h1 Welcome to TickIt
           a href="/account" View your account details
         li
           a href="/events" View events
+        - if @policy_summary.dig('event', 'create')
+          li
+            a href="/events/new" Create Event
 
 - else
   p The secure attendance tracking system for educational events.

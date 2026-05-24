@@ -3,6 +3,7 @@
 require 'roda'
 require 'json'
 require_relative '../lib/bootstrap'
+require_relative '../services/fetch_policy_summary'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
@@ -69,11 +70,20 @@ module TickIt
       @is_admin = admin?
       @is_organizer_or_admin = organizer_or_admin?
       @user_role = @current_user&.role || 'guest'
+      @policy_summary = session[:policy_summary] || {}
     end
 
     def establish_session(user)
       @current_session.save(user)
       @current_user = user
+      # Fetch and store policy summary for this user
+      begin
+        summary = TickIt::FetchPolicySummary.new(token: user.auth_token).call
+        session[:policy_summary] = summary['policies'] || {}
+      rescue StandardError
+        session[:policy_summary] = {}
+      end
+      @policy_summary = session[:policy_summary]
     end
 
     def clear_session!
@@ -93,6 +103,16 @@ module TickIt
       r.root { r.redirect '/home' }
 
       r.get 'home' do
+        # Refresh policy summary if logged in
+        if @current_user
+          begin
+            summary = TickIt::FetchPolicySummary.new(token: @current_user.auth_token).call
+            session[:policy_summary] = summary['policies'] || {}
+          rescue StandardError
+            session[:policy_summary] = {}
+          end
+          @policy_summary = session[:policy_summary]
+        end
         render_with_layout 'homes/home'
       end
 
@@ -263,6 +283,15 @@ module TickIt
             flash['error'] = e.message
             return r.redirect '/login'
           end
+
+          # Refresh policy summary for account page
+          begin
+            summary = TickIt::FetchPolicySummary.new(token: @current_user.auth_token).call
+            session[:policy_summary] = summary['policies'] || {}
+          rescue StandardError
+            session[:policy_summary] = {}
+          end
+          @policy_summary = session[:policy_summary]
 
           begin
             @events = FetchEvents.new(token: @current_user.auth_token).call
