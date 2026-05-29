@@ -379,6 +379,93 @@ module TickIt
             r.redirect '/events'
           end
         end
+
+        r.on String do |event_id|
+          r.get 'edit' do
+            unless @is_teacher_or_admin
+              flash['error'] = 'Only teachers and admins can edit events'
+              return r.redirect "/events/#{event_id}"
+            end
+
+            begin
+              result   = FetchEvent.new(token: @current_user.auth_token).call(id: event_id)
+              @event   = result[:event]
+              @policy  = result[:policy]
+            rescue FetchEvent::NotFound
+              flash['error'] = 'Event not found'
+              return r.redirect '/events'
+            end
+
+            now             = Time.now
+            start_t         = @event.start_time ? Time.parse(@event.start_time) : nil
+            end_t           = @event.end_time   ? Time.parse(@event.end_time)   : nil
+            @event_started  = start_t && now >= start_t
+            @event_ended    = end_t   && now >= end_t
+
+            render_with_layout 'events/edit'
+          end
+
+          r.post do
+            unless @is_teacher_or_admin
+              flash['error'] = 'Only teachers and admins can edit events'
+              return r.redirect "/events/#{event_id}"
+            end
+
+            now = Time.now
+            begin
+              result  = FetchEvent.new(token: @current_user.auth_token).call(id: event_id)
+              event   = result[:event]
+            rescue FetchEvent::NotFound
+              flash['error'] = 'Event not found'
+              return r.redirect '/events'
+            end
+
+            start_t       = event.start_time ? Time.parse(event.start_time) : nil
+            end_t         = event.end_time   ? Time.parse(event.end_time)   : nil
+            event_started = start_t && now >= start_t
+            event_ended   = end_t   && now >= end_t
+
+            fields = {}
+            unless event_ended
+              unless event_started
+                fields[:start_time] = to_iso8601(r.params['start_time'])
+              end
+              fields[:name]     = r.params['name']
+              fields[:location] = r.params['location']
+              fields[:end_time] = to_iso8601(r.params['end_time'])
+            end
+            fields[:attendance_start_time] = to_iso8601(r.params['attendance_start_time']) || fields[:start_time] || event.start_time
+            fields[:attendance_end_time]   = to_iso8601(r.params['attendance_end_time'])   || fields[:end_time]   || event.end_time
+            fields[:description] = r.params['description']
+
+            begin
+              UpdateEvent.new(token: @current_user.auth_token).call(id: event_id, **fields)
+              flash['notice'] = 'Event updated successfully!'
+              r.redirect "/events/#{event_id}"
+            rescue UpdateEvent::InvalidEvent => e
+              response.status = 400
+              flash['error'] = e.message
+              r.redirect "/events/#{event_id}/edit"
+            rescue UpdateEvent::Forbidden
+              flash['error'] = 'You do not have permission to edit this event'
+              r.redirect "/events/#{event_id}"
+            end
+          end
+
+          r.get do
+            begin
+              result     = FetchEvent.new(token: @current_user.auth_token).call(id: event_id)
+              @event     = result[:event]
+              @attendees = result[:attendees]
+              @policy    = result[:policy]
+            rescue FetchEvent::NotFound
+              flash['error'] = 'Event not found'
+              return r.redirect '/events'
+            end
+
+            render_with_layout 'events/show'
+          end
+        end
       end
 
       r.on 'logout' do

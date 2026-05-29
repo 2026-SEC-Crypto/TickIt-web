@@ -16,7 +16,7 @@ h1 Events
     tbody
       - @events.each do |event|
         tr
-          td = event.name
+          td: a href="/events/#{event.id}" = event.name
           td = event.location
           td = event.start_time
           td = event.end_time

@@ -1,0 +1,134 @@
+h1 Edit Event
+
+- if @event_ended
+  .status-banner.ended ⚠ This event has ended. Only optional fields can be edited.
+- elsif @event_started
+  .status-banner.started ℹ This event has started. Start time cannot be changed.
+
+- if @error
+  .error-message = @error
+
+form action="/events/#{@event.id}" method="post"
+  - unless @event_ended
+    .form-section-label Event Time
+    p.form-hint The displayed start and end time of the event.
+
+    .form-group
+      label for="name" Event Name
+      input#name type="text" name="name" value=@event.name required=true
+
+    .form-group
+      label for="location" Location
+      input#location type="text" name="location" value=@event.location required=true
+
+    .form-group
+      label for="start_time" Start Time
+      - if @event_started
+        input#start_time type="datetime-local" name="start_time" value=@event.start_time disabled=true
+        input type="hidden" name="start_time" value=@event.start_time
+      - else
+        input#start_time type="datetime-local" name="start_time" value=@event.start_time required=true
+
+    .form-group
+      label for="end_time" End Time
+      input#end_time type="datetime-local" name="end_time" value=@event.end_time required=true
+
+  .form-section-label Attendance Window
+  p.form-hint The time window during which attendance check-in is accepted. Must be within the event start and end time.
+
+  .form-group
+    label for="attendance_start_time" Attendance Start Time (optional)
+    input#attendance_start_time type="datetime-local" name="attendance_start_time" value=@event.attendance_start_time
+
+  .form-group
+    label for="attendance_end_time" Attendance End Time (optional)
+    input#attendance_end_time type="datetime-local" name="attendance_end_time" value=@event.attendance_end_time
+
+  .form-group
+    label for="description" Description (optional)
+    textarea#description name="description" rows="3"
+      = @event.description
+
+  .form-actions
+    button.btn-submit type="submit" Save Changes
+    a.btn-cancel href="/events/#{@event.id}" Cancel
+
+style
+  | .status-banner {
+  |   padding: 0.75rem 1rem;
+  |   border-radius: 4px;
+  |   margin-bottom: 1.5rem;
+  |   font-weight: 500;
+  | }
+  | .status-banner.ended {
+  |   background-color: #fff3cd;
+  |   color: #856404;
+  |   border: 1px solid #ffc107;
+  | }
+  | .status-banner.started {
+  |   background-color: #d1ecf1;
+  |   color: #0c5460;
+  |   border: 1px solid #bee5eb;
+  | }
+  | .form-group {
+  |   margin-bottom: 1.25rem;
+  | }
+  | .form-group label {
+  |   display: block;
+  |   font-weight: 600;
+  |   color: #2c3e50;
+  |   margin-bottom: 0.4rem;
+  | }
+  | .form-group input, .form-group textarea {
+  |   width: 100%;
+  |   padding: 0.6rem 0.75rem;
+  |   border: 1px solid #ccc;
+  |   border-radius: 4px;
+  |   font-size: 1rem;
+  |   box-sizing: border-box;
+  | }
+  | .form-group input:disabled {
+  |   background-color: #e9ecef;
+  |   cursor: not-allowed;
+  | }
+  | .form-group textarea { resize: vertical; }
+  | .form-section-label {
+  |   font-size: 0.8rem;
+  |   font-weight: 700;
+  |   text-transform: uppercase;
+  |   letter-spacing: 0.05em;
+  |   color: #888;
+  |   margin-top: 1.75rem;
+  |   margin-bottom: 0.25rem;
+  | }
+  | .form-hint {
+  |   font-size: 0.85rem;
+  |   color: #888;
+  |   margin-top: 0;
+  |   margin-bottom: 1rem;
+  | }
+  | .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+  | .btn-submit {
+  |   padding: 0.75rem 1.5rem;
+  |   background-color: #3498db;
+  |   color: white;
+  |   border: none;
+  |   border-radius: 4px;
+  |   font-size: 1rem;
+  |   cursor: pointer;
+  | }
+  | .btn-cancel {
+  |   display: inline-block;
+  |   padding: 0.75rem 1.5rem;
+  |   background-color: #6c757d;
+  |   color: white;
+  |   text-decoration: none;
+  |   border-radius: 4px;
+  | }
+  | .error-message {
+  |   background-color: #f8d7da;
+  |   color: #721c24;
+  |   padding: 0.75rem 1rem;
+  |   border-radius: 4px;
+  |   margin-bottom: 1.25rem;
+  | }
