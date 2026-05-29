@@ -366,6 +366,18 @@ module TickIt
             @event_started  = start_t && now >= start_t
             @event_ended    = end_t   && now >= end_t
 
+            # If stored attendance times are outside the event range (e.g. old corrupted timezone data),
+            # reset the prefill values to the event start/end times.
+            att_s = @event.attendance_start_time ? Time.parse(@event.attendance_start_time) : nil
+            att_e = @event.attendance_end_time   ? Time.parse(@event.attendance_end_time)   : nil
+            if start_t && end_t && att_s && att_e && (att_s < start_t || att_e > end_t)
+              @att_start_prefill = @event.start_time
+              @att_end_prefill   = @event.end_time
+            else
+              @att_start_prefill = @event.attendance_start_time
+              @att_end_prefill   = @event.attendance_end_time
+            end
+
             render_with_layout 'events/edit'
           end
 

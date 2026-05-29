@@ -38,11 +38,11 @@ form action="/events/#{@event.id}" method="post"
 
   .form-group
     label for="attendance_start_time" Attendance Start Time (optional)
-    input#attendance_start_time type="datetime-local" name="attendance_start_time" value=to_datetime_local_tw(@event.attendance_start_time)
+    input#attendance_start_time type="datetime-local" name="attendance_start_time" value=to_datetime_local_tw(@att_start_prefill)
 
   .form-group
     label for="attendance_end_time" Attendance End Time (optional)
-    input#attendance_end_time type="datetime-local" name="attendance_end_time" value=to_datetime_local_tw(@event.attendance_end_time)
+    input#attendance_end_time type="datetime-local" name="attendance_end_time" value=to_datetime_local_tw(@att_end_prefill)
 
   .form-group
     label for="description" Description (optional)
