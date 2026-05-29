@@ -5,8 +5,8 @@ require_relative 'api_client'
 module TickIt
   class FetchEvents < ApiClient
     def call(mine: false)
-      url = mine ? "#{api_url}/events?mine=true" : "#{api_url}/events"
-      response = http_client.get(url)
+      opts = mine ? { params: { mine: 'true' } } : {}
+      response = http_client.get("#{api_url}/events", **opts)
 
       case response.status
       when 200
