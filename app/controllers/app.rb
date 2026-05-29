@@ -449,6 +449,25 @@ module TickIt
             end
           end
 
+          r.post 'delete' do
+            unless @is_teacher_or_admin
+              flash['error'] = 'Only teachers and admins can delete events'
+              return r.redirect "/events/#{event_id}"
+            end
+
+            begin
+              DeleteEvent.new(token: @current_user.auth_token).call(id: event_id)
+              flash['notice'] = 'Event deleted successfully.'
+              r.redirect '/events'
+            rescue DeleteEvent::Forbidden
+              flash['error'] = 'You do not have permission to delete this event'
+              r.redirect "/events/#{event_id}"
+            rescue DeleteEvent::NotFound
+              flash['error'] = 'Event not found'
+              r.redirect '/events'
+            end
+          end
+
           r.get do
             begin
               result     = FetchEvent.new(token: @current_user.auth_token).call(id: event_id)
