@@ -303,6 +303,65 @@ module TickIt
         end
       end
 
+      r.on 'events' do
+        unless @current_user
+          flash['error'] = 'You must be logged in to view events'
+          r.redirect '/login'
+        end
+
+        r.get 'new' do
+          unless @is_teacher_or_admin
+            flash['error'] = 'Only teachers and admins can create events'
+            return r.redirect '/events'
+          end
+
+          render_with_layout 'events/new'
+        end
+
+        r.get do
+          begin
+            @events = FetchEvents.new(token: @current_user.auth_token).call
+          rescue FetchEvents::Error
+            @events = []
+          end
+
+          render_with_layout 'events/index'
+        end
+
+        r.post do
+          unless @is_teacher_or_admin
+            flash['error'] = 'Only teachers and admins can create events'
+            return r.redirect '/events'
+          end
+
+          def to_iso8601(val)
+            return nil if val.to_s.strip.empty?
+            val.include?('Z') || val.include?('+') ? val : "#{val}:00Z"
+          end
+
+          begin
+            CreateEvent.new(token: @current_user.auth_token).call(
+              name: r.params['name'],
+              location: r.params['location'],
+              start_time: to_iso8601(r.params['start_time']),
+              end_time: to_iso8601(r.params['end_time']),
+              attendance_start_time: to_iso8601(r.params['attendance_start_time']),
+              attendance_end_time: to_iso8601(r.params['attendance_end_time']),
+              description: r.params['description']
+            )
+            flash['notice'] = 'Event created successfully!'
+            r.redirect '/events'
+          rescue CreateEvent::InvalidEvent => e
+            response.status = 400
+            @error = e.message
+            render_with_layout 'events/new'
+          rescue CreateEvent::Forbidden
+            flash['error'] = 'You do not have permission to create events'
+            r.redirect '/events'
+          end
+        end
+      end
+
       r.on 'logout' do
         SessionService.log_user_action(@current_user.id, 'logout') if @current_user
 

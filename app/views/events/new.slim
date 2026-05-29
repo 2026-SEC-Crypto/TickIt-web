@@ -1,0 +1,96 @@
+h1 Create New Event
+
+- if @error
+  .error-message = @error
+
+form action="/events" method="post"
+  .form-group
+    label for="name" Event Name
+    input#name type="text" name="name" required=true placeholder="e.g. Weekly Lecture"
+
+  .form-group
+    label for="location" Location
+    input#location type="text" name="location" required=true placeholder="e.g. Room 101"
+
+  .form-group
+    label for="start_time" Start Time
+    input#start_time type="datetime-local" name="start_time" required=true
+
+  .form-group
+    label for="end_time" End Time
+    input#end_time type="datetime-local" name="end_time" required=true
+
+  .form-group
+    label for="attendance_start_time" Attendance Window Start (optional)
+    input#attendance_start_time type="datetime-local" name="attendance_start_time"
+
+  .form-group
+    label for="attendance_end_time" Attendance Window End (optional)
+    input#attendance_end_time type="datetime-local" name="attendance_end_time"
+
+  .form-group
+    label for="description" Description (optional)
+    textarea#description name="description" rows="3" placeholder="Brief description of the event"
+
+  .form-actions
+    button.btn-submit type="submit" Create Event
+    a.btn-cancel href="/events" Cancel
+
+style
+  | .form-group {
+  |   margin-bottom: 1.25rem;
+  | }
+  | .form-group label {
+  |   display: block;
+  |   font-weight: 600;
+  |   color: #2c3e50;
+  |   margin-bottom: 0.4rem;
+  | }
+  | .form-group input, .form-group textarea {
+  |   width: 100%;
+  |   padding: 0.6rem 0.75rem;
+  |   border: 1px solid #ccc;
+  |   border-radius: 4px;
+  |   font-size: 1rem;
+  |   box-sizing: border-box;
+  | }
+  | .form-group textarea {
+  |   resize: vertical;
+  | }
+  | .form-actions {
+  |   display: flex;
+  |   gap: 1rem;
+  |   margin-top: 1.5rem;
+  | }
+  | .btn-submit {
+  |   padding: 0.75rem 1.5rem;
+  |   background-color: #28a745;
+  |   color: white;
+  |   border: none;
+  |   border-radius: 4px;
+  |   font-size: 1rem;
+  |   cursor: pointer;
+  |   transition: background-color 0.3s ease;
+  | }
+  | .btn-submit:hover {
+  |   background-color: #218838;
+  | }
+  | .btn-cancel {
+  |   display: inline-block;
+  |   padding: 0.75rem 1.5rem;
+  |   background-color: #6c757d;
+  |   color: white;
+  |   text-decoration: none;
+  |   border-radius: 4px;
+  |   transition: background-color 0.3s ease;
+  | }
+  | .btn-cancel:hover {
+  |   background-color: #5a6268;
+  | }
+  | .error-message {
+  |   background-color: #f8d7da;
+  |   color: #721c24;
+  |   padding: 0.75rem 1rem;
+  |   border-radius: 4px;
+  |   margin-bottom: 1.25rem;
+  | }

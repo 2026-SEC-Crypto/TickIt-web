@@ -1,0 +1,74 @@
+h1 Events
+
+- if @is_teacher_or_admin
+  .actions
+    a.btn-create href="/events/new" Create New Event
+
+- if @events && @events.any?
+  table.events-table
+    thead
+      tr
+        th Name
+        th Location
+        th Start Time
+        th End Time
+        th Attendance Window
+    tbody
+      - @events.each do |event|
+        tr
+          td = event.name
+          td = event.location
+          td = event.start_time
+          td = event.end_time
+          td
+            - if event.attendance_start_time
+              = "#{event.attendance_start_time} – #{event.attendance_end_time}"
+            - else
+              span.na N/A
+- else
+  p.no-events No events found.
+
+a href="/home" ← Back to Home
+
+style
+  | .actions {
+  |   margin-bottom: 1.5rem;
+  | }
+  | .btn-create {
+  |   display: inline-block;
+  |   padding: 0.75rem 1.5rem;
+  |   background-color: #28a745;
+  |   color: white;
+  |   text-decoration: none;
+  |   border-radius: 4px;
+  |   transition: background-color 0.3s ease;
+  | }
+  | .btn-create:hover {
+  |   background-color: #218838;
+  | }
+  | .events-table {
+  |   width: 100%;
+  |   border-collapse: collapse;
+  |   margin-bottom: 1.5rem;
+  | }
+  | .events-table th, .events-table td {
+  |   text-align: left;
+  |   padding: 0.75rem 1rem;
+  |   border-bottom: 1px solid #eee;
+  | }
+  | .events-table th {
+  |   font-weight: 600;
+  |   color: #2c3e50;
+  |   background-color: #f8f9fa;
+  | }
+  | .events-table tr:last-child td {
+  |   border-bottom: none;
+  | }
+  | .no-events {
+  |   color: #888;
+  |   font-style: italic;
+  | }
+  | .na {
+  |   color: #aaa;
+  |   font-style: italic;
+  | }
