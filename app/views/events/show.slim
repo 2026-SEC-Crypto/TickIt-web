@@ -1,3 +1,8 @@
+.breadcrumb
+  a href="/events" Events
+  span  ›
+  span = @event.name
+
 h1 = @event.name
 
 .event-detail
@@ -23,7 +28,7 @@ h1 = @event.name
 
   .event-actions
     a.btn-back href="/events" ← Back to Events
-    - if @policy && @policy['update_own'] || @policy && @policy['update_any']
+    - if @is_teacher_or_admin
       a.btn-edit href="/events/#{@event.id}/edit" Edit Event
 
   h2 Registered Attendees
@@ -103,3 +108,10 @@ style
   | }
   | .attendees-table tr:last-child td { border-bottom: none; }
   | .no-attendees { color: #888; font-style: italic; }
+  | .breadcrumb {
+  |   font-size: 0.9rem;
+  |   color: #888;
+  |   margin-bottom: 0.5rem;
+  | }
+  | .breadcrumb a { color: #3498db; text-decoration: none; }
+  | .breadcrumb span { margin: 0 0.3rem; }
