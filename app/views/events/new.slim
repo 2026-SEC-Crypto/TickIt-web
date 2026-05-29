@@ -12,6 +12,9 @@ form action="/events" method="post"
     label for="location" Location
     input#location type="text" name="location" required=true placeholder="e.g. Room 101"
 
+  .form-section-label Event Time
+  p.form-hint The displayed start and end time of the event.
+
   .form-group
     label for="start_time" Start Time
     input#start_time type="datetime-local" name="start_time" required=true
@@ -20,12 +23,15 @@ form action="/events" method="post"
     label for="end_time" End Time
     input#end_time type="datetime-local" name="end_time" required=true
 
+  .form-section-label Attendance Window
+  p.form-hint The time window during which attendance check-in is accepted. Defaults to the event time if left blank. Must be within the event start and end time.
+
   .form-group
-    label for="attendance_start_time" Attendance Window Start (optional)
+    label for="attendance_start_time" Attendance Start Time (optional)
     input#attendance_start_time type="datetime-local" name="attendance_start_time"
 
   .form-group
-    label for="attendance_end_time" Attendance Window End (optional)
+    label for="attendance_end_time" Attendance End Time (optional)
     input#attendance_end_time type="datetime-local" name="attendance_end_time"
 
   .form-group
@@ -93,4 +99,19 @@ style
   |   padding: 0.75rem 1rem;
   |   border-radius: 4px;
   |   margin-bottom: 1.25rem;
+  | }
+  | .form-section-label {
+  |   font-size: 0.8rem;
+  |   font-weight: 700;
+  |   text-transform: uppercase;
+  |   letter-spacing: 0.05em;
+  |   color: #888;
+  |   margin-top: 1.75rem;
+  |   margin-bottom: 0.25rem;
+  | }
+  | .form-hint {
+  |   font-size: 0.85rem;
+  |   color: #888;
+  |   margin-top: 0;
+  |   margin-bottom: 1rem;
   | }

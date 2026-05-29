@@ -60,6 +60,12 @@ module TickIt
       @current_user&.admin? || false
     end
 
+    def to_iso8601(val)
+      return nil if val.to_s.strip.empty?
+
+      val.include?('Z') || val.include?('+') ? val : "#{val}:00Z"
+    end
+
     def teacher_or_admin?
       return false if @current_user.nil?
 
@@ -334,19 +340,32 @@ module TickIt
             return r.redirect '/events'
           end
 
-          def to_iso8601(val)
-            return nil if val.to_s.strip.empty?
-            val.include?('Z') || val.include?('+') ? val : "#{val}:00Z"
+          start_time     = to_iso8601(r.params['start_time'])
+          end_time       = to_iso8601(r.params['end_time'])
+          att_start      = to_iso8601(r.params['attendance_start_time']) || start_time
+          att_end        = to_iso8601(r.params['attendance_end_time'])   || end_time
+
+          if start_time && end_time && att_start && att_end
+            s  = Time.parse(start_time)
+            e  = Time.parse(end_time)
+            as = Time.parse(att_start)
+            ae = Time.parse(att_end)
+
+            if as < s || ae > e
+              response.status = 400
+              @error = 'Attendance window must be within the event start and end time.'
+              next render_with_layout 'events/new'
+            end
           end
 
           begin
             CreateEvent.new(token: @current_user.auth_token).call(
               name: r.params['name'],
               location: r.params['location'],
-              start_time: to_iso8601(r.params['start_time']),
-              end_time: to_iso8601(r.params['end_time']),
-              attendance_start_time: to_iso8601(r.params['attendance_start_time']),
-              attendance_end_time: to_iso8601(r.params['attendance_end_time']),
+              start_time: start_time,
+              end_time: end_time,
+              attendance_start_time: att_start,
+              attendance_end_time: att_end,
               description: r.params['description']
             )
             flash['notice'] = 'Event created successfully!'
