@@ -6,66 +6,23 @@ p.attendance-note Please scan the QR code at the event venue to mark your attend
   .actions
     a.btn-create href="/events/new" Create New Event
 
-- if @is_teacher_or_admin
-  - created = @events&.select(&:created_by_me) || []
-  - attended = @events&.reject(&:created_by_me) || []
-
-  h2.section-title Events I Created
-  - if created.any?
-    table.events-table
-      thead
+- if @events && @events.any?
+  table.events-table
+    thead
+      tr
+        th Name
+        th Location
+        th Start Time
+        th End Time
+    tbody
+      - @events.each do |event|
         tr
-          th Name
-          th Location
-          th Start Time
-          th End Time
-      tbody
-        - created.each do |event|
-          tr
-            td: a href="/events/#{event.id}" = event.name
-            td = event.location
-            td = format_time_tw(event.start_time)
-            td = format_time_tw(event.end_time)
-  - else
-    p.no-events No events created yet.
-
-  h2.section-title Events I Attended
-  - if attended.any?
-    table.events-table
-      thead
-        tr
-          th Name
-          th Location
-          th Start Time
-          th End Time
-      tbody
-        - attended.each do |event|
-          tr
-            td: a href="/events/#{event.id}" = event.name
-            td = event.location
-            td = format_time_tw(event.start_time)
-            td = format_time_tw(event.end_time)
-  - else
-    p.no-events No attended events yet.
-
+          td: a href="/events/#{event.id}" = event.name
+          td = event.location
+          td = format_time_tw(event.start_time)
+          td = format_time_tw(event.end_time)
 - else
-  - if @events && @events.any?
-    table.events-table
-      thead
-        tr
-          th Name
-          th Location
-          th Start Time
-          th End Time
-      tbody
-        - @events.each do |event|
-          tr
-            td: a href="/events/#{event.id}" = event.name
-            td = event.location
-            td = format_time_tw(event.start_time)
-            td = format_time_tw(event.end_time)
-  - else
-    p.no-events No events found.
+  p.no-events No events found.
 
 a href="/home" ← Back to Home
 
