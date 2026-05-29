@@ -1,5 +1,7 @@
 h1 Events
 
+p.attendance-note Please scan the QR code at the event venue to mark your attendance.
+
 - if @is_teacher_or_admin
   .actions
     a.btn-create href="/events/new" Create New Event
@@ -25,6 +27,15 @@ h1 Events
 a href="/home" ← Back to Home
 
 style
+  | .attendance-note {
+  |   background-color: #eaf4fb;
+  |   border-left: 4px solid #3498db;
+  |   padding: 0.75rem 1rem;
+  |   border-radius: 4px;
+  |   color: #2c3e50;
+  |   font-size: 0.95rem;
+  |   margin-bottom: 1.5rem;
+  | }
   | .actions {
   |   margin-bottom: 1.5rem;
   | }
