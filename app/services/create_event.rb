@@ -8,7 +8,8 @@ module TickIt
     class Forbidden < StandardError; end
 
     def call(name:, location:, start_time:, end_time:,
-             attendance_start_time: nil, attendance_end_time: nil, description: nil)
+             attendance_start_time: nil, attendance_end_time: nil,
+             description: nil, repeat_weeks: nil)
       payload = {
         name: name,
         location: location,
@@ -16,7 +17,8 @@ module TickIt
         end_time: end_time,
         attendance_start_time: attendance_start_time,
         attendance_end_time: attendance_end_time,
-        description: description
+        description: description,
+        repeat_weeks: repeat_weeks
       }.compact
 
       response = http_client.post("#{api_url}/events", json: payload)
@@ -24,7 +26,9 @@ module TickIt
       case response.status
       when 201
         body = parse_json(response.body)
-        Event.from_api_hash(body.fetch('event'))
+        # Returns single event or first of a series
+        event_data = body['event'] || body.fetch('events', []).first
+        Event.from_api_hash(event_data)
       when 400
         raise InvalidEvent, error_message(response.body, 'Invalid event data')
       when 401

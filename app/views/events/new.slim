@@ -38,6 +38,13 @@ form action="/events" method="post"
     label for="description" Description (optional)
     textarea#description name="description" rows="3" placeholder="Brief description of the event"
 
+  .form-section-label Recurring Event
+  p.form-hint If this is a weekly recurring event, enter the number of weeks. Leave blank for a single event.
+
+  .form-group.repeat-group
+    label for="repeat_weeks" Repeat Weekly (number of weeks, e.g. 18)
+    input#repeat_weeks type="number" name="repeat_weeks" min="2" max="52" placeholder="Leave blank for single event"
+
   .form-actions
     button.btn-submit type="submit" Create Event
     a.btn-cancel href="/events" Cancel

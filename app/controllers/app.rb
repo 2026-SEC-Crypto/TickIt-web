@@ -341,6 +341,78 @@ module TickIt
           r.redirect '/login'
         end
 
+        r.on 'series' do
+          r.on String do |series_id|
+            r.get 'edit' do
+              unless @is_teacher_or_admin
+                flash['error'] = 'Only teachers and admins can edit events'
+                return r.redirect '/events'
+              end
+
+              begin
+                result = FetchEvents.new(token: @current_user.auth_token).call
+                series = result.select { |e| e.series_id == series_id }.sort_by(&:start_time)
+              rescue FetchEvents::Error
+                series = []
+              end
+
+              if series.empty?
+                flash['error'] = 'Series not found'
+                return r.redirect '/events'
+              end
+
+              @series_id = series_id
+              @first_event = series.first
+              render_with_layout 'events/edit_series'
+            end
+
+            r.post 'delete' do
+              unless @is_teacher_or_admin
+                flash['error'] = 'Only teachers and admins can delete events'
+                return r.redirect '/events'
+              end
+
+              begin
+                result = DeleteSeries.new(token: @current_user.auth_token).call(series_id: series_id)
+                flash['notice'] = "#{result['message']}."
+                r.redirect '/events'
+              rescue DeleteSeries::Forbidden
+                flash['error'] = 'You do not have permission to delete this series'
+                r.redirect '/events'
+              rescue DeleteSeries::NotFound
+                flash['error'] = 'Series not found'
+                r.redirect '/events'
+              end
+            end
+
+            r.post do
+              unless @is_teacher_or_admin
+                flash['error'] = 'Only teachers and admins can edit events'
+                return r.redirect '/events'
+              end
+
+              fields = {}
+              fields[:name]        = r.params['name']        unless r.params['name'].to_s.strip.empty?
+              fields[:location]    = r.params['location']    unless r.params['location'].to_s.strip.empty?
+              fields[:description] = r.params['description']
+              fields[:attendance_start_time] = to_iso8601(r.params['attendance_start_time'])
+              fields[:attendance_end_time]   = to_iso8601(r.params['attendance_end_time'])
+
+              begin
+                UpdateSeries.new(token: @current_user.auth_token).call(series_id: series_id, **fields)
+                flash['notice'] = 'Series updated successfully!'
+                r.redirect '/events'
+              rescue UpdateSeries::Forbidden
+                flash['error'] = 'You do not have permission to edit this series'
+                r.redirect '/events'
+              rescue UpdateSeries::NotFound
+                flash['error'] = 'Series not found'
+                r.redirect '/events'
+              end
+            end
+          end
+        end
+
         r.get 'new' do
           unless @is_teacher_or_admin
             flash['error'] = 'Only teachers and admins can create events'
@@ -517,6 +589,8 @@ module TickIt
             end
           end
 
+          repeat_weeks = r.params['repeat_weeks'].to_s.strip.empty? ? nil : r.params['repeat_weeks'].to_i
+
           begin
             CreateEvent.new(token: @current_user.auth_token).call(
               name: r.params['name'],
@@ -525,9 +599,11 @@ module TickIt
               end_time: end_time,
               attendance_start_time: att_start,
               attendance_end_time: att_end,
-              description: r.params['description']
+              description: r.params['description'],
+              repeat_weeks: repeat_weeks
             )
-            flash['notice'] = 'Event created successfully!'
+            msg = repeat_weeks && repeat_weeks >= 2 ? "#{repeat_weeks} recurring events created!" : 'Event created successfully!'
+            flash['notice'] = msg
             r.redirect '/events'
           rescue CreateEvent::InvalidEvent => e
             response.status = 400

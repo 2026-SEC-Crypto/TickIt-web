@@ -4,11 +4,12 @@ module TickIt
   # Represents an event returned from the API.
   class Event
     attr_reader :id, :name, :location, :start_time, :end_time,
-                :attendance_start_time, :attendance_end_time, :description, :created_by_me
+                :attendance_start_time, :attendance_end_time, :description,
+                :created_by_me, :series_id
 
     def initialize(id:, name:, location:, start_time:, end_time:,
                    attendance_start_time: nil, attendance_end_time: nil,
-                   description: nil, created_by_me: false)
+                   description: nil, created_by_me: false, series_id: nil)
       @id = id
       @name = name
       @location = location
@@ -18,6 +19,7 @@ module TickIt
       @attendance_end_time = attendance_end_time
       @description = description
       @created_by_me = created_by_me
+      @series_id = series_id
     end
 
     def self.from_api_hash(hash)
@@ -31,7 +33,8 @@ module TickIt
         attendance_start_time: data[:attendance_start_time],
         attendance_end_time: data[:attendance_end_time],
         description: data[:description],
-        created_by_me: data[:created_by_me] == true
+        created_by_me: data[:created_by_me] == true,
+        series_id: data[:series_id]
       )
     end
   end
