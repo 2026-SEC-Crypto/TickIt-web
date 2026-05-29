@@ -12,7 +12,6 @@ h1 Events
         th Location
         th Start Time
         th End Time
-        th Attendance Window
     tbody
       - @events.each do |event|
         tr
@@ -20,11 +19,6 @@ h1 Events
           td = event.location
           td = format_time_tw(event.start_time)
           td = format_time_tw(event.end_time)
-          td
-            - if event.attendance_start_time
-              = "#{format_time_tw(event.attendance_start_time)} – #{format_time_tw(event.attendance_end_time)}"
-            - else
-              span.na N/A
 - else
   p.no-events No events found.
 
