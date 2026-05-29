@@ -65,7 +65,13 @@ module TickIt
     def to_iso8601(val)
       return nil if val.to_s.strip.empty?
 
-      val.include?('Z') || val.include?('+') ? val : "#{val}:00+08:00"
+      str = val.to_s.strip
+      # If no timezone info, treat as Taiwan local time (UTC+8)
+      str = "#{str}+08:00" unless str.match?(/Z$|[+-]\d{2}:\d{2}$/)
+      # Always return as UTC to avoid ambiguity
+      Time.parse(str).utc.iso8601
+    rescue ArgumentError
+      nil
     end
 
     def to_datetime_local_tw(time_str)
