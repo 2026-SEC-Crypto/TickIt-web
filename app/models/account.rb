@@ -17,8 +17,8 @@ module TickIt
       role == 'admin'
     end
 
-    def organizer?
-      role == 'organizer'
+    def teacher?
+      role == 'teacher'
     end
 
     def self.from_api_hash(hash)
@@ -27,7 +27,7 @@ module TickIt
         id: data[:id],
         username: data[:username],
         email: data[:email],
-        role: data[:role] || 'member',
+        role: data[:role] || 'regular',
         auth_token: data[:auth_token]
       )
     end
@@ -38,7 +38,7 @@ module TickIt
         id: data[:id],
         username: data[:username],
         email: data[:email],
-        role: data[:role] || 'member',
+        role: data[:role] || 'regular',
         auth_token: token
       )
     end

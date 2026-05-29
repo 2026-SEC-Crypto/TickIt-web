@@ -51,8 +51,8 @@ h1 Account Overview
           li Configure system settings
 
     - if @policy_summary.dig('event', 'create')
-      .organizer-section
-        h2 Organizer Features
+      .teacher-section
+        h2 Teacher Features
         p You can create and manage events.
         ul
           li Create new events
@@ -124,11 +124,11 @@ h1 Account Overview
     |   background-color: #dc3545;
     |   color: white;
     | }
-    | .role-organizer {
+    | .role-teacher {
     |   background-color: #ffc107;
     |   color: #333;
     | }
-    | .role-member {
+    | .role-regular {
     |   background-color: #28a745;
     |   color: white;
     | }
@@ -166,7 +166,7 @@ h1 Account Overview
     | .account-actions a[href="/logout"]:hover {
     |   background-color: #c0392b;
     | }
-    | .admin-section, .organizer-section {
+    | .admin-section, .teacher-section {
     |   background-color: #f8f9fa;
     |   border-left: 4px solid;
     |   padding: 1.5rem;
@@ -176,18 +176,18 @@ h1 Account Overview
     | .admin-section {
     |   border-left-color: #dc3545;
     | }
-    | .organizer-section {
+    | .teacher-section {
     |   border-left-color: #ffc107;
     | }
-    | .admin-section h2, .organizer-section h2 {
+    | .admin-section h2, .teacher-section h2 {
     |   margin-top: 0;
     |   color: #2c3e50;
     | }
-    | .admin-section ul, .organizer-section ul {
+    | .admin-section ul, .teacher-section ul {
     |   list-style-position: inside;
     |   margin: 1rem 0 0 0;
     | }
-    | .admin-section li, .organizer-section li {
+    | .admin-section li, .teacher-section li {
     |   margin: 0.5rem 0;
     |   color: #555;
     | }

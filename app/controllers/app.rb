@@ -60,15 +60,15 @@ module TickIt
       @current_user&.admin? || false
     end
 
-    def organizer_or_admin?
+    def teacher_or_admin?
       return false if @current_user.nil?
 
-      @current_user.organizer? || @current_user.admin?
+      @current_user.teacher? || @current_user.admin?
     end
 
     def make_authorization_available
       @is_admin = admin?
-      @is_organizer_or_admin = organizer_or_admin?
+      @is_teacher_or_admin = teacher_or_admin?
       @user_role = @current_user&.role || 'guest'
       @policy_summary = session[:policy_summary] || {}
     end

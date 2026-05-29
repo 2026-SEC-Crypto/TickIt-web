@@ -23,7 +23,7 @@ module TickIt
         id: account_id,
         username: @secure_session.get(:username),
         email: @secure_session.get(:email),
-        role: @secure_session.get(:role) || 'member',
+        role: @secure_session.get(:role) || 'regular',
         auth_token: @secure_session.get(:auth_token)
       )
     end

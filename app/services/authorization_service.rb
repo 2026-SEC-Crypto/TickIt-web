@@ -9,26 +9,26 @@ module TickIt
     # Define permission levels for different actions
     PERMISSIONS = {
       # User account actions
-      view_own_account: %w[member admin organizer],
-      update_own_account: %w[member admin organizer],
-      delete_own_account: %w[member admin organizer],
+      view_own_account: %w[regular admin teacher],
+      update_own_account: %w[regular admin teacher],
+      delete_own_account: %w[regular admin teacher],
       view_all_accounts: ['admin'],
       update_any_account: ['admin'],
       delete_any_account: ['admin'],
 
       # Event actions
-      view_events: %w[member admin organizer],
-      create_event: %w[admin organizer],
-      update_own_event: %w[admin organizer],
+      view_events: %w[regular admin teacher],
+      create_event: %w[admin teacher],
+      update_own_event: %w[admin teacher],
       update_any_event: ['admin'],
-      delete_own_event: %w[admin organizer],
+      delete_own_event: %w[admin teacher],
       delete_any_event: ['admin'],
 
       # Attendance actions
-      view_own_attendance: %w[member admin organizer],
-      view_all_attendance: %w[admin organizer],
-      record_attendance: %w[admin organizer],
-      edit_attendance: %w[admin organizer],
+      view_own_attendance: %w[regular admin teacher],
+      view_all_attendance: %w[admin teacher],
+      record_attendance: %w[admin teacher],
+      edit_attendance: %w[admin teacher],
       delete_attendance: ['admin']
     }.freeze
 
@@ -109,10 +109,10 @@ module TickIt
       case role
       when 'admin'
         'Administrator'
-      when 'organizer'
-        'Event Organizer'
-      when 'member'
-        'Member'
+      when 'teacher'
+        'Teacher'
+      when 'regular'
+        'Regular'
       else
         role.capitalize
       end
@@ -121,7 +121,7 @@ module TickIt
     # Get all available roles
     # @return [Array<String>] List of available roles
     def self.available_roles
-      %w[member organizer admin]
+      %w[regular teacher admin]
     end
   end
 end
