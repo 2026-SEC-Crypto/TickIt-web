@@ -75,10 +75,10 @@ h1 Account Overview
           tbody
             - @events.each do |event|
               tr
-                td = event.name
+                td: a href="/events/#{event.id}" = event.name
                 td = event.location
-                td = event.start_time
-                td = event.end_time
+                td = format_time_tw(event.start_time)
+                td = format_time_tw(event.end_time)
       - else
         p.no-events No events found.
 

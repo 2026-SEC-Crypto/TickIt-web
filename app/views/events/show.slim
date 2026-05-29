@@ -13,14 +13,14 @@ h1 = @event.name
       span.value = @event.location
     .info-item
       span.label Start Time
-      span.value = @event.start_time
+      span.value = format_time_tw(@event.start_time)
     .info-item
       span.label End Time
-      span.value = @event.end_time
+      span.value = format_time_tw(@event.end_time)
     - if @event.attendance_start_time
       .info-item
         span.label Attendance Window
-        span.value = "#{@event.attendance_start_time} – #{@event.attendance_end_time}"
+        span.value = "#{format_time_tw(@event.attendance_start_time)} – #{format_time_tw(@event.attendance_end_time)}"
     - if @event.description
       .info-item
         span.label Description

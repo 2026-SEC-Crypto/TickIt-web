@@ -60,10 +60,22 @@ module TickIt
       @current_user&.admin? || false
     end
 
+    TW_DAYS = %w[日 一 二 三 四 五 六].freeze
+
     def to_iso8601(val)
       return nil if val.to_s.strip.empty?
 
       val.include?('Z') || val.include?('+') ? val : "#{val}:00Z"
+    end
+
+    def format_time_tw(time_str)
+      return '—' if time_str.nil? || time_str.to_s.strip.empty?
+
+      t = Time.parse(time_str.to_s).localtime('+08:00')
+      day = TW_DAYS[t.wday]
+      t.strftime("%Y-%m-%d（#{day}）%H:%M")
+    rescue ArgumentError
+      time_str.to_s
     end
 
     def teacher_or_admin?
@@ -324,62 +336,6 @@ module TickIt
           render_with_layout 'events/new'
         end
 
-        r.get do
-          begin
-            @events = FetchEvents.new(token: @current_user.auth_token).call
-          rescue FetchEvents::Error
-            @events = []
-          end
-
-          render_with_layout 'events/index'
-        end
-
-        r.post do
-          unless @is_teacher_or_admin
-            flash['error'] = 'Only teachers and admins can create events'
-            return r.redirect '/events'
-          end
-
-          start_time     = to_iso8601(r.params['start_time'])
-          end_time       = to_iso8601(r.params['end_time'])
-          att_start      = to_iso8601(r.params['attendance_start_time']) || start_time
-          att_end        = to_iso8601(r.params['attendance_end_time'])   || end_time
-
-          if start_time && end_time && att_start && att_end
-            s  = Time.parse(start_time)
-            e  = Time.parse(end_time)
-            as = Time.parse(att_start)
-            ae = Time.parse(att_end)
-
-            if as < s || ae > e
-              response.status = 400
-              @error = 'Attendance window must be within the event start and end time.'
-              next render_with_layout 'events/new'
-            end
-          end
-
-          begin
-            CreateEvent.new(token: @current_user.auth_token).call(
-              name: r.params['name'],
-              location: r.params['location'],
-              start_time: start_time,
-              end_time: end_time,
-              attendance_start_time: att_start,
-              attendance_end_time: att_end,
-              description: r.params['description']
-            )
-            flash['notice'] = 'Event created successfully!'
-            r.redirect '/events'
-          rescue CreateEvent::InvalidEvent => e
-            response.status = 400
-            @error = e.message
-            render_with_layout 'events/new'
-          rescue CreateEvent::Forbidden
-            flash['error'] = 'You do not have permission to create events'
-            r.redirect '/events'
-          end
-        end
-
         r.on String do |event_id|
           r.get 'edit' do
             unless @is_teacher_or_admin
@@ -466,6 +422,63 @@ module TickIt
             render_with_layout 'events/show'
           end
         end
+
+        r.get do
+          begin
+            @events = FetchEvents.new(token: @current_user.auth_token).call
+          rescue FetchEvents::Error
+            @events = []
+          end
+
+          render_with_layout 'events/index'
+        end
+
+        r.post do
+          unless @is_teacher_or_admin
+            flash['error'] = 'Only teachers and admins can create events'
+            return r.redirect '/events'
+          end
+
+          start_time     = to_iso8601(r.params['start_time'])
+          end_time       = to_iso8601(r.params['end_time'])
+          att_start      = to_iso8601(r.params['attendance_start_time']) || start_time
+          att_end        = to_iso8601(r.params['attendance_end_time'])   || end_time
+
+          if start_time && end_time && att_start && att_end
+            s  = Time.parse(start_time)
+            e  = Time.parse(end_time)
+            as = Time.parse(att_start)
+            ae = Time.parse(att_end)
+
+            if as < s || ae > e
+              response.status = 400
+              @error = 'Attendance window must be within the event start and end time.'
+              next render_with_layout 'events/new'
+            end
+          end
+
+          begin
+            CreateEvent.new(token: @current_user.auth_token).call(
+              name: r.params['name'],
+              location: r.params['location'],
+              start_time: start_time,
+              end_time: end_time,
+              attendance_start_time: att_start,
+              attendance_end_time: att_end,
+              description: r.params['description']
+            )
+            flash['notice'] = 'Event created successfully!'
+            r.redirect '/events'
+          rescue CreateEvent::InvalidEvent => e
+            response.status = 400
+            @error = e.message
+            render_with_layout 'events/new'
+          rescue CreateEvent::Forbidden
+            flash['error'] = 'You do not have permission to create events'
+            r.redirect '/events'
+          end
+        end
+
       end
 
       r.on 'logout' do
