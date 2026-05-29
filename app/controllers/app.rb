@@ -65,7 +65,15 @@ module TickIt
     def to_iso8601(val)
       return nil if val.to_s.strip.empty?
 
-      val.include?('Z') || val.include?('+') ? val : "#{val}:00Z"
+      val.include?('Z') || val.include?('+') ? val : "#{val}:00+08:00"
+    end
+
+    def to_datetime_local_tw(time_str)
+      return '' if time_str.nil? || time_str.to_s.strip.empty?
+
+      Time.parse(time_str.to_s).localtime('+08:00').strftime('%Y-%m-%dT%H:%M')
+    rescue ArgumentError
+      ''
     end
 
     def format_time_tw(time_str)

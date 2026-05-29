@@ -24,25 +24,25 @@ form action="/events/#{@event.id}" method="post"
     .form-group
       label for="start_time" Start Time
       - if @event_started
-        input#start_time type="datetime-local" name="start_time" value=@event.start_time disabled=true
-        input type="hidden" name="start_time" value=@event.start_time
+        input#start_time type="datetime-local" name="start_time" value=to_datetime_local_tw(@event.start_time) disabled=true
+        input type="hidden" name="start_time" value=to_datetime_local_tw(@event.start_time)
       - else
-        input#start_time type="datetime-local" name="start_time" value=@event.start_time required=true
+        input#start_time type="datetime-local" name="start_time" value=to_datetime_local_tw(@event.start_time) required=true
 
     .form-group
       label for="end_time" End Time
-      input#end_time type="datetime-local" name="end_time" value=@event.end_time required=true
+      input#end_time type="datetime-local" name="end_time" value=to_datetime_local_tw(@event.end_time) required=true
 
   .form-section-label Attendance Window
   p.form-hint The time window during which attendance check-in is accepted. Must be within the event start and end time.
 
   .form-group
     label for="attendance_start_time" Attendance Start Time (optional)
-    input#attendance_start_time type="datetime-local" name="attendance_start_time" value=@event.attendance_start_time
+    input#attendance_start_time type="datetime-local" name="attendance_start_time" value=to_datetime_local_tw(@event.attendance_start_time)
 
   .form-group
     label for="attendance_end_time" Attendance End Time (optional)
-    input#attendance_end_time type="datetime-local" name="attendance_end_time" value=@event.attendance_end_time
+    input#attendance_end_time type="datetime-local" name="attendance_end_time" value=to_datetime_local_tw(@event.attendance_end_time)
 
   .form-group
     label for="description" Description (optional)
