@@ -398,9 +398,24 @@ module TickIt
               fields[:location] = r.params['location']
               fields[:end_time] = to_iso8601(r.params['end_time'])
             end
-            fields[:attendance_start_time] = to_iso8601(r.params['attendance_start_time']) || fields[:start_time] || event.start_time
-            fields[:attendance_end_time]   = to_iso8601(r.params['attendance_end_time'])   || fields[:end_time]   || event.end_time
+            effective_start = fields[:start_time] || event.start_time
+            effective_end   = fields[:end_time]   || event.end_time
+            fields[:attendance_start_time] = to_iso8601(r.params['attendance_start_time']) || effective_start
+            fields[:attendance_end_time]   = to_iso8601(r.params['attendance_end_time'])   || effective_end
             fields[:description] = r.params['description']
+
+            if effective_start && effective_end &&
+               fields[:attendance_start_time] && fields[:attendance_end_time]
+              s  = Time.parse(effective_start.to_s)
+              e  = Time.parse(effective_end.to_s)
+              as = Time.parse(fields[:attendance_start_time].to_s)
+              ae = Time.parse(fields[:attendance_end_time].to_s)
+
+              if as < s || ae > e
+                flash['error'] = 'Attendance window must be within the event start and end time.'
+                next r.redirect "/events/#{event_id}/edit"
+              end
+            end
 
             begin
               UpdateEvent.new(token: @current_user.auth_token).call(id: event_id, **fields)
