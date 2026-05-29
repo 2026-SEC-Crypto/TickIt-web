@@ -64,23 +64,63 @@ h1 Account Overview
 
     .events-section
       h2 My Events
-      - if @events && @events.any?
-        table.events-table
-          thead
-            tr
-              th Name
-              th Location
-              th Start Time
-              th End Time
-          tbody
-            - @events.each do |event|
+      - if @is_teacher_or_admin
+        - created = @events&.select(&:created_by_me) || []
+        - attended = @events&.reject(&:created_by_me) || []
+        h3.sub-section Events I Created
+        - if created.any?
+          table.events-table
+            thead
               tr
-                td: a href="/events/#{event.id}" = event.name
-                td = event.location
-                td = format_time_tw(event.start_time)
-                td = format_time_tw(event.end_time)
+                th Name
+                th Location
+                th Start Time
+                th End Time
+            tbody
+              - created.each do |event|
+                tr
+                  td: a href="/events/#{event.id}" = event.name
+                  td = event.location
+                  td = format_time_tw(event.start_time)
+                  td = format_time_tw(event.end_time)
+        - else
+          p.no-events No events created yet.
+        h3.sub-section Events I Attended
+        - if attended.any?
+          table.events-table
+            thead
+              tr
+                th Name
+                th Location
+                th Start Time
+                th End Time
+            tbody
+              - attended.each do |event|
+                tr
+                  td: a href="/events/#{event.id}" = event.name
+                  td = event.location
+                  td = format_time_tw(event.start_time)
+                  td = format_time_tw(event.end_time)
+        - else
+          p.no-events No attended events yet.
       - else
-        p.no-events No events found.
+        - if @events && @events.any?
+          table.events-table
+            thead
+              tr
+                th Name
+                th Location
+                th Start Time
+                th End Time
+            tbody
+              - @events.each do |event|
+                tr
+                  td: a href="/events/#{event.id}" = event.name
+                  td = event.location
+                  td = format_time_tw(event.start_time)
+                  td = format_time_tw(event.end_time)
+        - else
+          p.no-events No events found.
 
   style
     | .account-info {
@@ -225,6 +265,13 @@ h1 Account Overview
     | .no-events {
     |   color: #888;
     |   font-style: italic;
+    | }
+    | .sub-section {
+    |   font-size: 1rem;
+    |   color: #555;
+    |   margin-top: 1.25rem;
+    |   margin-bottom: 0.5rem;
+    |   font-weight: 600;
     | }
 
 - else
