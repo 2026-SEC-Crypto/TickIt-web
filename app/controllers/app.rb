@@ -326,7 +326,7 @@ module TickIt
           @policy_summary = session[:policy_summary]
 
           begin
-            @events = FetchEvents.new(token: @current_user.auth_token).call
+            @events = FetchEvents.new(token: @current_user.auth_token).call(mine: true)
           rescue FetchEvents::Error
             @events = []
           end
