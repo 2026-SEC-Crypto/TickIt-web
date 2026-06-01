@@ -331,6 +331,12 @@ module TickIt
             @events = []
           end
 
+          begin
+            @api_key = FetchApiKey.new(token: @current_user.auth_token).call
+          rescue StandardError
+            @api_key = nil
+          end
+
           render_with_layout 'accounts/overview'
         end
       end
