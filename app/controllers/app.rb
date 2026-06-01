@@ -2,6 +2,7 @@
 
 require 'roda'
 require 'json'
+require 'securerandom'
 require_relative '../lib/bootstrap'
 require_relative '../services/fetch_policy_summary'
 
@@ -103,6 +104,7 @@ module TickIt
       @is_teacher_or_admin = teacher_or_admin?
       @user_role = @current_user&.role || 'guest'
       @policy_summary = session[:policy_summary] || {}
+      @google_sso_enabled = GoogleSsoService.configured?
     end
 
     def establish_session(user)
@@ -121,6 +123,15 @@ module TickIt
     def clear_session!
       @current_session.clear!
       @current_user = nil
+    end
+
+    def google_redirect_uri(base_url)
+      ENV.fetch('GOOGLE_REDIRECT_URI', "#{base_url}/auth/google/callback")
+    end
+
+    def clear_google_oauth_state!
+      session.delete(:google_oauth_state)
+      session.delete(:google_oauth_nonce)
     end
 
     route do |r|
@@ -149,6 +160,25 @@ module TickIt
       end
 
       r.on 'login' do
+        r.get 'google' do
+          unless @google_sso_enabled
+            flash['error'] = 'Google SSO is not configured'
+            return r.redirect '/login'
+          end
+
+          state = SecureRandom.hex(24)
+          nonce = SecureRandom.hex(24)
+          session[:google_oauth_state] = state
+          session[:google_oauth_nonce] = nonce
+
+          auth_url = GoogleSsoService.new.authorization_url(
+            redirect_uri: google_redirect_uri(request.base_url),
+            state: state,
+            nonce: nonce
+          )
+          r.redirect auth_url
+        end
+
         r.get do
           if @current_user
             r.redirect '/account'
@@ -187,6 +217,44 @@ module TickIt
             response.status = 401
             @error = 'Invalid email or password'
             render_with_layout 'sessions/login'
+          end
+        end
+      end
+
+      r.on 'auth' do
+        r.on 'google' do
+          r.get 'callback' do
+            if r.params['error']
+              clear_google_oauth_state!
+              flash['error'] = "Google sign-in failed: #{r.params['error_description'] || r.params['error']}"
+              return r.redirect '/login'
+            end
+
+            begin
+              user = GoogleSsoService.new.authenticate(
+                code: r.params['code'],
+                redirect_uri: google_redirect_uri(request.base_url),
+                state: r.params['state'],
+                expected_state: session[:google_oauth_state],
+                nonce: session[:google_oauth_nonce]
+              )
+            rescue GoogleSsoService::StateMismatch, GoogleSsoService::VerificationError => e
+              response.status = 401
+              flash['error'] = e.message
+              clear_google_oauth_state!
+              return r.redirect '/login'
+            rescue GoogleSsoService::TokenExchangeError, GoogleSsoService::ApiError => e
+              response.status = 503
+              flash['error'] = e.message
+              clear_google_oauth_state!
+              return r.redirect '/login'
+            end
+
+            clear_google_oauth_state!
+            establish_session(user)
+            SessionService.log_user_action(user.id, 'login_sso_google')
+            flash['notice'] = "Welcome back, #{user.username || user.email}!"
+            r.redirect '/account'
           end
         end
       end

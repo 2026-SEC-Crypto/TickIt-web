@@ -13,6 +13,7 @@ module TickIt
       @secure_session.set(:email, account.email)
       @secure_session.set(:role, account.role)
       @secure_session.set(:auth_token, account.auth_token)
+      @secure_session.set(:avatar_url, account.avatar_url)
     end
 
     def load
@@ -24,7 +25,8 @@ module TickIt
         username: @secure_session.get(:username),
         email: @secure_session.get(:email),
         role: @secure_session.get(:role) || 'regular',
-        auth_token: @secure_session.get(:auth_token)
+        auth_token: @secure_session.get(:auth_token),
+        avatar_url: @secure_session.get(:avatar_url)
       )
     end
 
