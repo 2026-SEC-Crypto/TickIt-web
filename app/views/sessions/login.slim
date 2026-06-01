@@ -18,6 +18,10 @@ form method="post" action="/login"
     button type="submit" Login
     a href="/home" Cancel
 
+- if @google_sso_enabled
+  .sso-actions
+    a.google-btn href="/login/google" Continue with Google
+
 p.signup-link
   | Don't have an account? 
   a href="/register" Register here
@@ -54,6 +58,24 @@ style
   | .form-actions {
   |   display: flex;
   |   gap: 1rem;
+  | }
+  | .sso-actions {
+  |   margin-top: 1rem;
+  | }
+  | .google-btn {
+  |   display: block;
+  |   width: 100%;
+  |   padding: 0.75rem;
+  |   border: 1px solid #ddd;
+  |   border-radius: 4px;
+  |   background: #fff;
+  |   color: #333;
+  |   text-align: center;
+  |   text-decoration: none;
+  | }
+  | .google-btn:hover {
+  |   border-color: #bbb;
+  |   background: #f9f9f9;
   | }
   | button, a[href="/home"] {
   |   flex: 1;

@@ -18,6 +18,12 @@ h1 Account Overview
         span.value
           .role-badge class="role-#{@current_user.role}"
             = @current_user.role.upcase
+
+      - if @current_user.avatar_url
+        .info-item
+          span.label Avatar:
+          span.value
+            img.avatar src=@current_user.avatar_url alt="User avatar"
       
       .info-item
         span.label Account ID:
@@ -163,6 +169,13 @@ h1 Account Overview
     |   word-break: break-all;
     |   flex: 1;
     |   text-align: right;
+    | }
+    | .avatar {
+    |   width: 64px;
+    |   height: 64px;
+    |   border-radius: 999px;
+    |   object-fit: cover;
+    |   vertical-align: middle;
     | }
     | .role-badge {
     |   display: inline-block;
