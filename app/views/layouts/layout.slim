@@ -61,6 +61,16 @@ html
       |   margin-top: 1.5rem;
       |   margin-bottom: 2rem;
       | }
+      | .app-notification {
+      |   display: flex; align-items: center; gap: 0.75rem;
+      |   padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 1.5rem;
+      |   font-size: 0.95rem; font-weight: 500;
+      |   animation: slideDown 0.3s ease;
+      | }
+      | .app-notif-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+      | .app-notif-error   { background-color: #fdecea; color: #7b1e1e; border: 1px solid #f5c6cb; }
+      | .app-notif-icon { font-size: 1.1rem; font-weight: bold; }
+      | @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
   body
     nav
@@ -78,4 +88,12 @@ html
     .container
       .flash-container
         == render('shared/flash_messages')
+      - if @application_notification
+        .app-notification class="app-notif-#{@application_notification[:type]}"
+          span.app-notif-icon
+            - if @application_notification[:type] == 'success'
+              | ✓
+            - else
+              | ✗
+          span.app-notif-msg = @application_notification[:message]
       == yield

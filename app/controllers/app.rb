@@ -8,6 +8,7 @@ require_relative '../services/fetch_policy_summary'
 require_relative '../services/submit_teacher_application'
 require_relative '../services/fetch_applications'
 require_relative '../services/decide_application'
+require_relative '../services/fetch_my_application'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
@@ -145,6 +146,28 @@ module TickIt
       @current_user = @current_session.load
       @flash = flash
       make_authorization_available
+      @application_notification = nil
+
+      if @current_user && session[:application_pending] && !session[:application_notified]
+        begin
+          app_data = FetchMyApplication.new(token: @current_user.auth_token).call
+          if app_data
+            case app_data['status']
+            when 'approved'
+              @application_notification = { type: 'success', message: 'Your teacher application has been approved! Please log out and log back in to activate your new role.' }
+              session[:application_notified] = true
+            when 'rejected'
+              msg = 'Your teacher application was not approved.'
+              reason = app_data['rejection_reason']
+              msg += " Reason: #{reason}" if reason && !reason.to_s.strip.empty?
+              @application_notification = { type: 'error', message: msg }
+              session[:application_notified] = true
+            end
+          end
+        rescue StandardError
+          nil
+        end
+      end
 
       r.root { r.redirect '/home' }
 
@@ -721,6 +744,8 @@ module TickIt
               school_email: r.params['school_email'].to_s.strip,
               notes: r.params['notes']
             )
+            session[:application_pending]  = true
+            session[:application_notified] = false
             flash['notice'] = 'Application submitted! An admin will review your request.'
             r.redirect '/account'
           rescue SubmitTeacherApplication::AlreadyApplied => e
