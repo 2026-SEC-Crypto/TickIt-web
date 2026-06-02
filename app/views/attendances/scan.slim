@@ -1,0 +1,103 @@
+h1 Attendance Check-In
+
+.scan-container
+  #scan-state.state-verifying
+    .state-icon ⏳
+    h2 Verifying your attendance...
+    p Getting your location and checking in automatically.
+
+  #scan-state-success.state-success style="display:none"
+    .state-icon ✓
+    h2 Checked in successfully!
+    p.event-name-display
+    p.checkin-time-display
+    a.btn.btn-home href="/events" Back to Events
+
+  #scan-state-error.state-error style="display:none"
+    .state-icon ✗
+    h2 Check-in failed
+    p#error-msg
+    a.btn.btn-retry href="#" onclick="window.location.reload(); return false;" Try Again
+    |
+    a.btn.btn-home href="/events" Back to Events
+
+#js-scan-data data-token=@token data-auth-token=@current_user.auth_token data-api-url=@api_url
+
+javascript:
+  const el        = document.getElementById('js-scan-data');
+  const token     = el.dataset.token;
+  const authToken = el.dataset.authToken;
+  const apiUrl    = el.dataset.apiUrl;
+
+  function showSuccess(data) {
+    document.getElementById('scan-state').style.display = 'none';
+    const s = document.getElementById('scan-state-success');
+    s.style.display = '';
+    const eventName = data.event && data.event.name ? data.event.name : '';
+    if (eventName) {
+      s.querySelector('.event-name-display').textContent = eventName;
+    }
+    if (data.check_in_time) {
+      s.querySelector('.checkin-time-display').textContent =
+        'Checked in at: ' + new Date(data.check_in_time).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('scan-state').style.display = 'none';
+    const e = document.getElementById('scan-state-error');
+    e.style.display = '';
+    document.getElementById('error-msg').textContent = msg;
+  }
+
+  async function checkIn(lat, lng) {
+    const resp = await fetch(`${apiUrl}/attendances/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ token, lat, lng })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      showSuccess(data);
+    } else {
+      showError(data.error || `Check-in failed (${resp.status})`);
+    }
+  }
+
+  if (!navigator.geolocation) {
+    showError('Geolocation is not supported by your browser. Please use a different device.');
+  } else {
+    navigator.geolocation.getCurrentPosition(
+      pos => checkIn(pos.coords.latitude, pos.coords.longitude),
+      err => {
+        if (err.code === 1) {
+          showError('Location permission denied. Please allow location access and try again.');
+        } else {
+          showError('Could not get your location. Please try again.');
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
+style
+  | .scan-container { max-width: 480px; margin: 4rem auto; text-align: center; padding: 0 1rem; }
+  | #scan-state, #scan-state-success, #scan-state-error {
+  |   background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  |   padding: 3rem 2rem;
+  | }
+  | .state-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+  | .state-verifying h2 { color: #555; }
+  | .state-verifying p { color: #888; margin-top: 0.5rem; }
+  | .state-success .state-icon { color: #27ae60; }
+  | .state-success h2 { color: #27ae60; }
+  | .state-success p { color: #555; margin-top: 0.5rem; }
+  | .state-error .state-icon { color: #e74c3c; }
+  | .state-error h2 { color: #e74c3c; }
+  | .state-error p { color: #555; margin-top: 0.5rem; font-size: 0.95rem; }
+  | .btn { display: inline-block; padding: 0.65rem 1.3rem; border-radius: 4px; text-decoration: none; font-size: 0.9rem; margin-top: 1.5rem; }
+  | .btn-home { background-color: #3498db; color: white; }
+  | .btn-retry { background-color: #e67e22; color: white; margin-right: 0.5rem; }

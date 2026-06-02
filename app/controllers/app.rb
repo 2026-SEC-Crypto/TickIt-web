@@ -243,7 +243,8 @@ module TickIt
             SessionService.log_user_action(user.id, 'login')
             flash['notice'] = "Welcome back, #{user.username || user.email}!"
             flash['error'] = nil
-            r.redirect '/account'
+            return_to = r.params['return_to'].to_s.strip
+            r.redirect(return_to.start_with?('/') ? return_to : '/account')
           else
             response.status = 401
             @error = 'Invalid email or password'
@@ -837,6 +838,26 @@ module TickIt
               r.redirect '/admin/applications'
             end
           end
+        end
+      end
+
+      r.on 'attend' do
+        r.get do
+          token = r.params['token'].to_s.strip
+          if token.empty?
+            flash['error'] = 'Invalid attendance link'
+            return r.redirect '/events'
+          end
+
+          unless @current_user
+            return_url = "/attend?token=#{CGI.escape(token)}"
+            flash['notice'] = 'Please log in to check in.'
+            return r.redirect "/login?return_to=#{CGI.escape(return_url)}"
+          end
+
+          @token   = token
+          @api_url = api_url
+          render_with_layout 'attendances/scan'
         end
       end
 
