@@ -29,7 +29,7 @@ h1 Attendance — #{@event.name}
   .attendance-hint
     p.login-reminder ⚠️ Students must be logged in before scanning this QR Code
     p Show this QR Code on screen. Students scan to check in.
-    p.hint-small The code refreshes automatically every 14 seconds.
+    p.hint-small The code refreshes automatically every 2.5 minutes.
 
 / Pass data to JS via data attributes (auth token is already in session cookie)
 #js-data data-event-id=@event.id data-auth-token=@current_user.auth_token data-api-url=@api_url data-web-url=@web_base_url
@@ -56,24 +56,29 @@ javascript:
     const bar = document.getElementById('countdown-bar');
     const num = document.getElementById('countdown-num');
     bar.style.display = 'flex';
-    num.textContent = seconds;
     if (countdownInterval) clearInterval(countdownInterval);
     let remaining = seconds;
+    function fmt(s) {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${m}:${String(sec).padStart(2, '0')}`;
+    }
+    num.textContent = fmt(remaining);
     countdownInterval = setInterval(() => {
       remaining -= 1;
-      num.textContent = remaining;
+      num.textContent = fmt(remaining);
       if (remaining <= 0) clearInterval(countdownInterval);
     }, 1000);
   }
 
-  async function fetchToken(lat, lng) {
+  async function fetchToken() {
     const resp = await fetch(`${apiUrl}/events/${eventId}/start_attendance`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ lat, lng })
+      body: JSON.stringify({})
     });
     if (!resp.ok) {
       const data = await resp.json();
@@ -97,29 +102,22 @@ javascript:
   }
 
   async function refreshToken() {
-    setStatus('Refreshing...', 'refreshing');
+    setStatus('Generating QR Code...', 'refreshing');
     try {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
-      const data = await fetchToken(pos.coords.latitude, pos.coords.longitude);
+      const data = await fetchToken();
       const scanUrl = `${webUrl}/attend?token=${encodeURIComponent(data.token)}`;
       renderQR(scanUrl);
       setStatus('QR Code active', 'active');
       document.getElementById('refresh-btn').style.display = 'inline-block';
-      startCountdown(14);
+      startCountdown(150);
     } catch(e) {
       setStatus('Error: ' + e.message, 'error');
     }
   }
 
   async function start() {
-    if (!navigator.geolocation) {
-      setStatus('Geolocation is not supported by this browser.', 'error');
-      return;
-    }
-    setStatus('Getting location...', 'loading');
     await refreshToken();
-    refreshInterval = setInterval(refreshToken, 14000);
+    refreshInterval = setInterval(refreshToken, 150000);
   }
 
   start();

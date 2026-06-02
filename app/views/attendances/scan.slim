@@ -4,7 +4,7 @@ h1 Attendance Check-In
   #scan-state.state-verifying
     .state-icon ⏳
     h2 Verifying your attendance...
-    p Getting your location and checking in automatically.
+    p Checking in automatically, please wait.
 
   #scan-state-success.state-success style="display:none"
     .state-icon ✓
@@ -50,14 +50,14 @@ javascript:
     document.getElementById('error-msg').textContent = msg;
   }
 
-  async function checkIn(lat, lng) {
+  async function checkIn() {
     const resp = await fetch(`${apiUrl}/attendances/scan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ token, lat, lng })
+      body: JSON.stringify({ token })
     });
     const data = await resp.json();
     if (resp.ok) {
@@ -67,21 +67,7 @@ javascript:
     }
   }
 
-  if (!navigator.geolocation) {
-    showError('Geolocation is not supported by your browser. Please use a different device.');
-  } else {
-    navigator.geolocation.getCurrentPosition(
-      pos => checkIn(pos.coords.latitude, pos.coords.longitude),
-      err => {
-        if (err.code === 1) {
-          showError('Location permission denied. Please allow location access and try again.');
-        } else {
-          showError('Could not get your location. Please try again.');
-        }
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  }
+  checkIn();
 
 style
   | .scan-container { max-width: 480px; margin: 4rem auto; text-align: center; padding: 0 1rem; }
