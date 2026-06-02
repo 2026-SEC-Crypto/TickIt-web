@@ -29,7 +29,7 @@ h1 Attendance — #{@event.name}
   .attendance-hint
     p.login-reminder ⚠️ Students must be logged in before scanning this QR Code
     p Show this QR Code on screen. Students scan to check in.
-    p.hint-small The code refreshes automatically every 2.5 minutes.
+    p.hint-small The code refreshes automatically every 25 seconds.
 
 / Pass data to JS via data attributes (auth token is already in session cookie)
 #js-data data-event-id=@event.id data-auth-token=@current_user.auth_token data-api-url=@api_url data-web-url=@web_base_url
@@ -109,7 +109,7 @@ javascript:
       renderQR(scanUrl);
       setStatus('QR Code active', 'active');
       document.getElementById('refresh-btn').style.display = 'inline-block';
-      startCountdown(150);
+      startCountdown(25);
     } catch(e) {
       setStatus('Error: ' + e.message, 'error');
     }
@@ -117,7 +117,7 @@ javascript:
 
   async function start() {
     await refreshToken();
-    refreshInterval = setInterval(refreshToken, 150000);
+    refreshInterval = setInterval(refreshToken, 25000);
   }
 
   start();
