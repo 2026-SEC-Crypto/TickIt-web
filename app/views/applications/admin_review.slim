@@ -1,0 +1,76 @@
+h1 Teacher Applications
+
+.admin-review-container
+  - if @flash && @flash['notice']
+    .alert.alert-success = @flash['notice']
+  - if @flash && @flash['error']
+    .alert.alert-error = @flash['error']
+
+  - pending = @applications.select { |a| a['status'] == 'pending' }
+  - others  = @applications.reject { |a| a['status'] == 'pending' }
+
+  h2 Pending (#{pending.size})
+
+  - if pending.any?
+    table.applications-table
+      thead
+        tr
+          th Account ID
+          th Applied At
+          th Actions
+      tbody
+        - pending.each do |app|
+          tr
+            td = app['account_id']
+            td = app['created_at']
+            td.actions
+              form action="/admin/applications/#{app['id']}/approve" method="post" style="display:inline"
+                button.btn.btn-approve type="submit" Approve
+              form action="/admin/applications/#{app['id']}/reject" method="post" style="display:inline"
+                button.btn.btn-reject type="submit" Reject
+  - else
+    p.empty-msg No pending applications.
+
+  - if others.any?
+    h2.past-header Past Decisions
+    table.applications-table
+      thead
+        tr
+          th Account ID
+          th Status
+          th Decided At
+      tbody
+        - others.each do |app|
+          tr
+            td = app['account_id']
+            td
+              span class="status-badge status-#{app['status']}" = app['status'].upcase
+            td = app['updated_at']
+
+  p.back-link
+    a href="/account" ← Back to Account
+
+style
+  | .admin-review-container { max-width: 800px; margin: 2rem auto; }
+  | .alert { padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+  | .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  | .alert-error   { background-color: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
+  | .applications-table { width: 100%; border-collapse: collapse; background: white;
+  |   border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+  | .applications-table th, .applications-table td {
+  |   padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
+  | .applications-table th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }
+  | .actions form { margin-right: 0.5rem; }
+  | .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+  | .btn-approve { background-color: #28a745; color: white; }
+  | .btn-approve:hover { background-color: #218838; }
+  | .btn-reject  { background-color: #dc3545; color: white; }
+  | .btn-reject:hover  { background-color: #c82333; }
+  | .status-badge { display: inline-block; padding: 0.3rem 0.7rem; border-radius: 4px;
+  |   font-size: 0.8rem; font-weight: 600; }
+  | .status-approved { background-color: #d4edda; color: #155724; }
+  | .status-rejected { background-color: #fdecea; color: #c0392b; }
+  | .past-header { margin-top: 2rem; }
+  | .empty-msg { color: #888; font-style: italic; margin-bottom: 1rem; }
+  | .back-link { margin-top: 1rem; }
+  | .back-link a { color: #3498db; text-decoration: none; }

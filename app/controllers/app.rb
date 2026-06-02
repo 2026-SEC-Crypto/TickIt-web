@@ -5,6 +5,9 @@ require 'json'
 require 'securerandom'
 require_relative '../lib/bootstrap'
 require_relative '../services/fetch_policy_summary'
+require_relative '../services/submit_teacher_application'
+require_relative '../services/fetch_applications'
+require_relative '../services/decide_application'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
@@ -689,6 +692,87 @@ module TickIt
           end
         end
 
+      end
+
+      r.on 'apply' do
+        unless @current_user
+          flash['error'] = 'You must be logged in'
+          r.redirect '/login'
+        end
+
+        r.get do
+          unless @current_user.role == 'regular'
+            flash['error'] = 'Only regular users can apply'
+            return r.redirect '/account'
+          end
+          render_with_layout 'applications/apply'
+        end
+
+        r.post do
+          unless @current_user.role == 'regular'
+            flash['error'] = 'Only regular users can apply'
+            return r.redirect '/account'
+          end
+
+          begin
+            SubmitTeacherApplication.new(token: @current_user.auth_token).call
+            flash['notice'] = 'Application submitted! An admin will review your request.'
+            r.redirect '/account'
+          rescue SubmitTeacherApplication::AlreadyApplied => e
+            flash['error'] = e.message
+            r.redirect '/apply'
+          rescue SubmitTeacherApplication::Forbidden => e
+            flash['error'] = e.message
+            r.redirect '/account'
+          rescue SubmitTeacherApplication::Error => e
+            flash['error'] = e.message
+            r.redirect '/apply'
+          end
+        end
+      end
+
+      r.on 'admin' do
+        unless @current_user&.admin?
+          flash['error'] = 'Admin access required'
+          r.redirect '/account'
+        end
+
+        r.on 'applications' do
+          r.get do
+            begin
+              @applications = FetchApplications.new(token: @current_user.auth_token).call
+            rescue FetchApplications::Error
+              @applications = []
+            end
+            render_with_layout 'applications/admin_review'
+          end
+
+          r.on String do |id|
+            r.post 'approve' do
+              begin
+                DecideApplication.new(token: @current_user.auth_token).call(id: id, decision: 'approve')
+                flash['notice'] = 'Application approved. User has been promoted to teacher.'
+              rescue DecideApplication::NotFound
+                flash['error'] = 'Application not found'
+              rescue DecideApplication::Error => e
+                flash['error'] = e.message
+              end
+              r.redirect '/admin/applications'
+            end
+
+            r.post 'reject' do
+              begin
+                DecideApplication.new(token: @current_user.auth_token).call(id: id, decision: 'reject')
+                flash['notice'] = 'Application rejected.'
+              rescue DecideApplication::NotFound
+                flash['error'] = 'Application not found'
+              rescue DecideApplication::Error => e
+                flash['error'] = e.message
+              end
+              r.redirect '/admin/applications'
+            end
+          end
+        end
       end
 
       r.on 'logout' do

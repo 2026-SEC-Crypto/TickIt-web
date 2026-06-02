@@ -46,9 +46,15 @@ h1 Account Overview
         - if @policy_summary.dig('event', 'create')
           li
             a href="/events/new" Create Event
+        - if @current_user.role == 'regular'
+          li
+            a href="/apply" Apply to Become a Teacher
         - if @policy_summary.dig('account', 'view_all')
           li
             a href="/admin/accounts" View All Accounts
+        - if admin?
+          li
+            a href="/admin/applications" Review Applications
         - if @policy_summary.dig('account', 'update_own')
           li
             a href="/account/edit" Edit My Account
