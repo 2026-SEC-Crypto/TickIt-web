@@ -17,11 +17,17 @@ h1 Attendance — #{@event.name}
       #qr-container
         #qrcode
 
+    #countdown-bar style="display:none"
+      .countdown-label Refreshes in
+      #countdown-num 14
+      .countdown-label s
+
     .qr-actions
       button#refresh-btn.btn.btn-primary onclick="refreshToken()" style="display:none" Refresh Now
       a.btn.btn-back href="/events/#{@event.id}" ← Back to Event
 
   .attendance-hint
+    p.login-reminder ⚠️ 請先登入後再掃描 QR Code
     p Show this QR Code on screen. Students scan to check in.
     p.hint-small The code refreshes automatically every 14 seconds.
 
@@ -38,11 +44,26 @@ javascript:
 
   let qrObj = null;
   let refreshInterval = null;
+  let countdownInterval = null;
 
   function setStatus(msg, cls) {
     const s = document.getElementById('status-msg');
     s.textContent = msg;
     s.className = 'status-' + cls;
+  }
+
+  function startCountdown(seconds) {
+    const bar = document.getElementById('countdown-bar');
+    const num = document.getElementById('countdown-num');
+    bar.style.display = 'flex';
+    num.textContent = seconds;
+    if (countdownInterval) clearInterval(countdownInterval);
+    let remaining = seconds;
+    countdownInterval = setInterval(() => {
+      remaining -= 1;
+      num.textContent = remaining;
+      if (remaining <= 0) clearInterval(countdownInterval);
+    }, 1000);
   }
 
   async function fetchToken(lat, lng) {
@@ -83,8 +104,9 @@ javascript:
       const data = await fetchToken(pos.coords.latitude, pos.coords.longitude);
       const scanUrl = `${webUrl}/attend?token=${encodeURIComponent(data.token)}`;
       renderQR(scanUrl);
-      setStatus('QR Code active — refreshes in 14s', 'active');
+      setStatus('QR Code active', 'active');
       document.getElementById('refresh-btn').style.display = 'inline-block';
+      startCountdown(14);
     } catch(e) {
       setStatus('Error: ' + e.message, 'error');
     }
@@ -112,6 +134,8 @@ style
   | .qr-section { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; text-align: center; margin-bottom: 1.5rem; }
   | .qr-wrapper { display: flex; justify-content: center; margin: 1.5rem 0; }
   | #qrcode { display: inline-block; }
+  | #countdown-bar { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0.5rem 0; color: #555; font-size: 0.9rem; }
+  | #countdown-num { font-size: 1.6rem; font-weight: 700; color: #3498db; min-width: 2rem; text-align: center; }
   | .qr-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
   | .btn { display: inline-block; padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; text-decoration: none; }
   | .btn-primary { background-color: #3498db; color: white; }
@@ -122,4 +146,5 @@ style
   | .status-active { color: #27ae60; font-weight: 600; margin-bottom: 0.5rem; }
   | .status-error { color: #e74c3c; font-weight: 600; margin-bottom: 0.5rem; }
   | .attendance-hint { background: #f8f9fa; border-radius: 8px; padding: 1rem 1.5rem; color: #555; font-size: 0.9rem; }
+  | .login-reminder { font-weight: 600; color: #e67e22; margin-bottom: 0.5rem; }
   | .hint-small { font-size: 0.8rem; color: #888; margin-top: 0.4rem; }

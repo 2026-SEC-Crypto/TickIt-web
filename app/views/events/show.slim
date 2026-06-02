@@ -43,22 +43,23 @@ h1 = @event.name
       form.inline-form action="/events/series/#{@event.series_id}/delete" method="post"
         button.btn-series-delete type="submit" onclick="return confirm('Delete ALL events in this series? This cannot be undone.')" Delete Entire Series
 
-  h2 Registered Attendees
-  - if @attendees && @attendees.any?
-    table.attendees-table
-      thead
-        tr
-          th Username
-          th Email
-          th Check-in Time
-      tbody
-        - @attendees.each do |a|
+  - if can_edit
+    h2 Registered Attendees
+    - if @attendees && @attendees.any?
+      table.attendees-table
+        thead
           tr
-            td = a['username'] || '(not set)'
-            td = a['email']
-            td = a['check_in_time'] || '—'
-  - else
-    p.no-attendees No attendees registered yet.
+            th Username
+            th Email
+            th Check-in Time
+        tbody
+          - @attendees.each do |a|
+            tr
+              td = a['username'] || '(not set)'
+              td = a['email']
+              td = a['check_in_time'] ? format_time_tw(a['check_in_time']) : '—'
+    - else
+      p.no-attendees No attendees registered yet.
 
 style
   | .event-detail {
