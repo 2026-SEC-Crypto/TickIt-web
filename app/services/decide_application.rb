@@ -6,8 +6,10 @@ module TickIt
   class DecideApplication < ApiClient
     class NotFound < StandardError; end
 
-    def call(id:, decision:)
-      response = http_client.patch("#{api_url}/applications/#{id}/#{decision}")
+    def call(id:, decision:, reason: nil)
+      body = decision == 'reject' && reason.to_s.strip != '' ? { reason: reason } : {}
+      response = http_client.patch("#{api_url}/applications/#{id}/#{decision}",
+                                   json: body)
 
       case response.status
       when 200

@@ -715,10 +715,18 @@ module TickIt
           end
 
           begin
-            SubmitTeacherApplication.new(token: @current_user.auth_token).call
+            SubmitTeacherApplication.new(token: @current_user.auth_token).call(
+              real_name: r.params['real_name'].to_s.strip,
+              organization: r.params['organization'].to_s.strip,
+              school_email: r.params['school_email'].to_s.strip,
+              notes: r.params['notes']
+            )
             flash['notice'] = 'Application submitted! An admin will review your request.'
             r.redirect '/account'
           rescue SubmitTeacherApplication::AlreadyApplied => e
+            flash['error'] = e.message
+            r.redirect '/apply'
+          rescue SubmitTeacherApplication::InvalidData => e
             flash['error'] = e.message
             r.redirect '/apply'
           rescue SubmitTeacherApplication::Forbidden => e
@@ -762,7 +770,9 @@ module TickIt
 
             r.post 'reject' do
               begin
-                DecideApplication.new(token: @current_user.auth_token).call(id: id, decision: 'reject')
+                DecideApplication.new(token: @current_user.auth_token).call(
+                  id: id, decision: 'reject', reason: r.params['reason']
+                )
                 flash['notice'] = 'Application rejected.'
               rescue DecideApplication::NotFound
                 flash['error'] = 'Application not found'

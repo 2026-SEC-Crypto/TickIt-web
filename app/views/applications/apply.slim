@@ -3,29 +3,47 @@ h1 Apply to Become a Teacher
 .apply-container
   .apply-card
     p.apply-desc
-      | Applying will send a request to the administrators for review.
-      | Once approved, your account will be upgraded to teacher status and you will be able to create and manage events.
+      | Please fill in the form below to apply for teacher status.
+      | An administrator will review your application and verify your identity.
+      | Once approved, you will be able to create and manage events.
 
     - if @flash && @flash['error']
       .alert.alert-error = @flash['error']
 
     form action="/apply" method="post"
-      button.btn.btn-primary type="submit" Apply for Teacher Role
+      .form-group
+        label.form-label for="real_name" Full Name *
+        input.form-input type="text" id="real_name" name="real_name" required=true placeholder="Your legal name"
+
+      .form-group
+        label.form-label for="organization" Organization / Department *
+        input.form-input type="text" id="organization" name="organization" required=true placeholder="e.g. Department of Computer Science, NTHU"
+
+      .form-group
+        label.form-label for="school_email" School / Institutional Email *
+        input.form-input type="email" id="school_email" name="school_email" required=true placeholder="yourname@university.edu.tw"
+
+      .form-group
+        label.form-label for="notes" Additional Notes
+        textarea.form-input id="notes" name="notes" rows="4" placeholder="Optional: anything else you'd like the admin to know"
+
+      button.btn.btn-primary type="submit" Submit Application
 
     p.back-link
       a href="/account" ← Back to Account
 
 style
-  | .apply-container { max-width: 600px; margin: 2rem auto; }
-  | .apply-card {
-  |   background: white; padding: 2rem; border-radius: 8px;
-  |   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  | }
+  | .apply-container { max-width: 640px; margin: 2rem auto; }
+  | .apply-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   | .apply-desc { color: #555; margin-bottom: 2rem; line-height: 1.7; }
-  | .btn {
-  |   display: inline-block; padding: 0.75rem 1.5rem; border: none;
-  |   border-radius: 4px; cursor: pointer; font-size: 1rem; text-decoration: none;
-  | }
+  | .form-group { margin-bottom: 1.25rem; }
+  | .form-label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 0.4rem; font-size: 0.95rem; }
+  | .form-input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
+  |   font-size: 0.95rem; box-sizing: border-box; }
+  | .form-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+  | textarea.form-input { resize: vertical; }
+  | .btn { display: inline-block; padding: 0.75rem 1.5rem; border: none; border-radius: 4px;
+  |   cursor: pointer; font-size: 1rem; }
   | .btn-primary { background-color: #3498db; color: white; }
   | .btn-primary:hover { background-color: #2980b9; }
   | .alert { padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; }

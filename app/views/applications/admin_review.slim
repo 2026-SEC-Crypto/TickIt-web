@@ -12,40 +12,75 @@ h1 Teacher Applications
   h2 Pending (#{pending.size})
 
   - if pending.any?
-    table.applications-table
-      thead
-        tr
-          th Account ID
-          th Applied At
-          th Actions
-      tbody
-        - pending.each do |app|
-          tr
-            td = app['account_id']
-            td = app['created_at']
-            td.actions
-              form action="/admin/applications/#{app['id']}/approve" method="post" style="display:inline"
-                button.btn.btn-approve type="submit" Approve
-              form action="/admin/applications/#{app['id']}/reject" method="post" style="display:inline"
-                button.btn.btn-reject type="submit" Reject
+    - pending.each do |app|
+      .application-card
+        .app-meta
+          .app-row
+            span.app-label Username
+            span.app-value = app['username'] || '(unknown)'
+          .app-row
+            span.app-label Email
+            span.app-value = app['email'] || '(unknown)'
+          .app-row
+            span.app-label Full Name
+            span.app-value = app['real_name'] || '—'
+          .app-row
+            span.app-label Organization
+            span.app-value = app['organization'] || '—'
+          .app-row
+            span.app-label School Email
+            span.app-value = app['school_email'] || '—'
+          - if app['notes'] && !app['notes'].empty?
+            .app-row
+              span.app-label Notes
+              span.app-value = app['notes']
+          .app-row
+            span.app-label Applied At
+            span.app-value = app['created_at']
+
+        .app-actions
+          form.approve-form action="/admin/applications/#{app['id']}/approve" method="post"
+            button.btn.btn-approve type="submit" ✓ Approve
+
+          details.reject-details
+            summary.btn.btn-reject-toggle ✗ Reject
+            .reject-form-inner
+              form action="/admin/applications/#{app['id']}/reject" method="post"
+                .form-group
+                  label for="reason_#{app['id']}" Rejection reason (optional)
+                  textarea name="reason" id="reason_#{app['id']}" rows="3" placeholder="Let the applicant know why..."
+                button.btn.btn-reject type="submit" Confirm Reject
   - else
     p.empty-msg No pending applications.
 
   - if others.any?
     h2.past-header Past Decisions
-    table.applications-table
-      thead
-        tr
-          th Account ID
-          th Status
-          th Decided At
-      tbody
-        - others.each do |app|
-          tr
-            td = app['account_id']
-            td
+    - others.each do |app|
+      .application-card.past
+        .app-meta
+          .app-row
+            span.app-label Username
+            span.app-value = app['username'] || '(unknown)'
+          .app-row
+            span.app-label Email
+            span.app-value = app['email'] || '(unknown)'
+          .app-row
+            span.app-label Full Name
+            span.app-value = app['real_name'] || '—'
+          .app-row
+            span.app-label Organization
+            span.app-value = app['organization'] || '—'
+          .app-row
+            span.app-label Status
+            span.app-value
               span class="status-badge status-#{app['status']}" = app['status'].upcase
-            td = app['updated_at']
+          - if app['rejection_reason'] && !app['rejection_reason'].empty?
+            .app-row
+              span.app-label Rejection Reason
+              span.app-value = app['rejection_reason']
+          .app-row
+            span.app-label Decided At
+            span.app-value = app['updated_at']
 
   p.back-link
     a href="/account" ← Back to Account
@@ -55,22 +90,37 @@ style
   | .alert { padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
   | .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
   | .alert-error   { background-color: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
-  | .applications-table { width: 100%; border-collapse: collapse; background: white;
-  |   border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
-  | .applications-table th, .applications-table td {
-  |   padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
-  | .applications-table th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }
-  | .actions form { margin-right: 0.5rem; }
-  | .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+  | .application-card {
+  |   background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  |   padding: 1.5rem; margin-bottom: 1.5rem;
+  | }
+  | .application-card.past { opacity: 0.85; }
+  | .app-meta { margin-bottom: 1.25rem; }
+  | .app-row { display: flex; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid #f0f0f0; }
+  | .app-row:last-child { border-bottom: none; }
+  | .app-label { font-weight: 600; color: #555; min-width: 140px; font-size: 0.9rem; }
+  | .app-value { color: #333; font-size: 0.9rem; word-break: break-all; }
+  | .app-actions { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  | .btn { display: inline-block; padding: 0.5rem 1.1rem; border: none; border-radius: 4px;
+  |   cursor: pointer; font-size: 0.9rem; }
   | .btn-approve { background-color: #28a745; color: white; }
   | .btn-approve:hover { background-color: #218838; }
-  | .btn-reject  { background-color: #dc3545; color: white; }
-  | .btn-reject:hover  { background-color: #c82333; }
+  | .btn-reject-toggle { background-color: #dc3545; color: white; list-style: none; }
+  | .btn-reject-toggle:hover { background-color: #c82333; }
+  | .btn-reject { background-color: #c82333; color: white; margin-top: 0.5rem; }
+  | .reject-details { display: inline-block; }
+  | .reject-details summary { cursor: pointer; }
+  | .reject-form-inner { margin-top: 0.75rem; background: #fff5f5; border: 1px solid #f5c6cb;
+  |   border-radius: 4px; padding: 1rem; min-width: 280px; }
+  | .reject-form-inner .form-group { margin-bottom: 0.75rem; }
+  | .reject-form-inner label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 0.3rem; }
+  | .reject-form-inner textarea { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
+  |   border-radius: 4px; font-size: 0.9rem; resize: vertical; box-sizing: border-box; }
   | .status-badge { display: inline-block; padding: 0.3rem 0.7rem; border-radius: 4px;
   |   font-size: 0.8rem; font-weight: 600; }
   | .status-approved { background-color: #d4edda; color: #155724; }
   | .status-rejected { background-color: #fdecea; color: #c0392b; }
-  | .past-header { margin-top: 2rem; }
+  | .past-header { margin-top: 2rem; margin-bottom: 1rem; }
   | .empty-msg { color: #888; font-style: italic; margin-bottom: 1rem; }
   | .back-link { margin-top: 1rem; }
   | .back-link a { color: #3498db; text-decoration: none; }
