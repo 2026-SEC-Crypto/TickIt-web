@@ -36,7 +36,7 @@ h1 Teacher Applications
               span.app-value = app['notes']
           .app-row
             span.app-label Applied At
-            span.app-value = app['created_at']
+            span.app-value = format_time_tw(app['created_at'])
 
         .app-actions
           form.approve-form action="/admin/applications/#{app['id']}/approve" method="post"
@@ -80,7 +80,7 @@ h1 Teacher Applications
               span.app-value = app['rejection_reason']
           .app-row
             span.app-label Decided At
-            span.app-value = app['updated_at']
+            span.app-value = format_time_tw(app['updated_at'])
 
   p.back-link
     a href="/account" ← Back to Account
