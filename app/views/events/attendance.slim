@@ -1,0 +1,125 @@
+h1 Attendance — #{@event.name}
+
+.attendance-container
+  .attendance-info
+    .info-row
+      span.info-label Event
+      span.info-value = @event.name
+    - if @event.attendance_start_time
+      .info-row
+        span.info-label Attendance Window
+        span.info-value = "#{format_time_tw(@event.attendance_start_time)} – #{format_time_tw(@event.attendance_end_time)}"
+
+  .qr-section
+    #status-msg.status-initializing Requesting location permission...
+
+    .qr-wrapper
+      #qr-container
+        #qrcode
+
+    .qr-actions
+      button#refresh-btn.btn.btn-primary onclick="refreshToken()" style="display:none" Refresh Now
+      a.btn.btn-back href="/events/#{@event.id}" ← Back to Event
+
+  .attendance-hint
+    p Show this QR Code on screen. Students scan to check in.
+    p.hint-small The code refreshes automatically every 14 seconds.
+
+/ Pass data to JS via data attributes (auth token is already in session cookie)
+#js-data data-event-id=@event.id data-auth-token=@current_user.auth_token data-api-url=@api_url data-web-url=@web_base_url
+
+script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
+javascript:
+  const el        = document.getElementById('js-data');
+  const eventId   = el.dataset.eventId;
+  const authToken = el.dataset.authToken;
+  const apiUrl    = el.dataset.apiUrl;
+  const webUrl    = el.dataset.webUrl;
+
+  let qrObj = null;
+  let refreshInterval = null;
+
+  function setStatus(msg, cls) {
+    const s = document.getElementById('status-msg');
+    s.textContent = msg;
+    s.className = 'status-' + cls;
+  }
+
+  async function fetchToken(lat, lng) {
+    const resp = await fetch(`${apiUrl}/events/${eventId}/start_attendance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ lat, lng })
+    });
+    if (!resp.ok) {
+      const data = await resp.json();
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+    return resp.json();
+  }
+
+  function renderQR(scanUrl) {
+    const container = document.getElementById('qrcode');
+    container.innerHTML = '';
+    if (qrObj) { qrObj = null; }
+    qrObj = new QRCode(container, {
+      text: scanUrl,
+      width: 280,
+      height: 280,
+      colorDark: '#2c3e50',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  async function refreshToken() {
+    setStatus('Refreshing...', 'refreshing');
+    try {
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
+      const data = await fetchToken(pos.coords.latitude, pos.coords.longitude);
+      const scanUrl = `${webUrl}/attend?token=${encodeURIComponent(data.token)}`;
+      renderQR(scanUrl);
+      setStatus('QR Code active — refreshes in 14s', 'active');
+      document.getElementById('refresh-btn').style.display = 'inline-block';
+    } catch(e) {
+      setStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function start() {
+    if (!navigator.geolocation) {
+      setStatus('Geolocation is not supported by this browser.', 'error');
+      return;
+    }
+    setStatus('Getting location...', 'loading');
+    await refreshToken();
+    refreshInterval = setInterval(refreshToken, 14000);
+  }
+
+  start();
+
+style
+  | .attendance-container { max-width: 600px; margin: 2rem auto; }
+  | .attendance-info { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1.5rem; }
+  | .info-row { display: flex; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
+  | .info-row:last-child { border-bottom: none; }
+  | .info-label { font-weight: 600; color: #555; min-width: 160px; font-size: 0.9rem; }
+  | .info-value { color: #333; font-size: 0.9rem; }
+  | .qr-section { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; text-align: center; margin-bottom: 1.5rem; }
+  | .qr-wrapper { display: flex; justify-content: center; margin: 1.5rem 0; }
+  | #qrcode { display: inline-block; }
+  | .qr-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+  | .btn { display: inline-block; padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; text-decoration: none; }
+  | .btn-primary { background-color: #3498db; color: white; }
+  | .btn-primary:hover { background-color: #2980b9; }
+  | .btn-back { background-color: #95a5a6; color: white; }
+  | .btn-back:hover { background-color: #7f8c8d; }
+  | .status-initializing, .status-loading, .status-refreshing { color: #888; font-style: italic; margin-bottom: 0.5rem; }
+  | .status-active { color: #27ae60; font-weight: 600; margin-bottom: 0.5rem; }
+  | .status-error { color: #e74c3c; font-weight: 600; margin-bottom: 0.5rem; }
+  | .attendance-hint { background: #f8f9fa; border-radius: 8px; padding: 1rem 1.5rem; color: #555; font-size: 0.9rem; }
+  | .hint-small { font-size: 0.8rem; color: #888; margin-top: 0.4rem; }

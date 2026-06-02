@@ -5,6 +5,7 @@ require 'json'
 require 'securerandom'
 require_relative '../lib/bootstrap'
 require_relative '../services/fetch_policy_summary'
+require_relative '../services/start_attendance'
 require_relative '../services/submit_teacher_application'
 require_relative '../services/fetch_applications'
 require_relative '../services/decide_application'
@@ -101,6 +102,10 @@ module TickIt
       return false if @current_user.nil?
 
       @current_user.teacher? || @current_user.admin?
+    end
+
+    def api_url
+      TickIt::ApiClient.api_url
     end
 
     def make_authorization_available
@@ -523,6 +528,31 @@ module TickIt
         end
 
         r.on String do |event_id|
+          r.get 'attendance' do
+            unless @is_teacher_or_admin
+              flash['error'] = 'Only teachers and admins can start attendance'
+              return r.redirect "/events/#{event_id}"
+            end
+
+            begin
+              result  = FetchEvent.new(token: @current_user.auth_token).call(id: event_id)
+              @event  = result[:event]
+              @policy = result[:policy]
+            rescue FetchEvent::NotFound
+              flash['error'] = 'Event not found'
+              return r.redirect '/events'
+            end
+
+            unless @policy['update_own'] || @policy['update_any']
+              flash['error'] = 'You do not have permission to start attendance for this event'
+              return r.redirect "/events/#{event_id}"
+            end
+
+            @api_url      = api_url
+            @web_base_url = request.base_url
+            render_with_layout 'events/attendance'
+          end
+
           r.get 'edit' do
             unless @is_teacher_or_admin
               flash['error'] = 'Only teachers and admins can edit events'
