@@ -34,7 +34,7 @@ h1 Attendance — #{@event.name}
 / Pass data to JS via data attributes (auth token is already in session cookie)
 #js-data data-event-id=@event.id data-auth-token=@current_user.auth_token data-api-url=@api_url data-web-url=@web_base_url
 
-script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
+script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"
 javascript:
   const el        = document.getElementById('js-data');
   const eventId   = el.dataset.eventId;

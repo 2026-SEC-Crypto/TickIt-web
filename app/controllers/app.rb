@@ -11,6 +11,7 @@ require_relative '../services/fetch_applications'
 require_relative '../services/decide_application'
 require_relative '../services/fetch_my_application'
 require_relative '../lib/signed_message'
+require_relative 'security'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
@@ -26,10 +27,7 @@ module TickIt
       'dev-tickit-secure-key-minimum-64-characters-required-for-production-use-now'
     ).freeze
 
-    configure :production do
-      plugin :redirect_http_to_https
-      plugin :hsts
-    end
+    # HTTPS enforcement and all security headers are configured in security.rb
 
     if ENV.fetch('RACK_ENV', 'development') == 'production'
       require 'redis'
@@ -38,12 +36,18 @@ module TickIt
           redis_server: ENV.fetch('REDISCLOUD_URL', 'redis://localhost:6379/0'),
           key: '_tickit_web_session',
           secret: SESSION_SECRET,
-          expire_after: 2_592_000
+          expire_after: 2_592_000,
+          secure: true,
+          httponly: true,
+          same_site: :strict
     else
       plugin :sessions,
              key: '_tickit_web_session',
              secret: SESSION_SECRET,
-             expire_after: 2_592_000
+             expire_after: 2_592_000,
+             secure: false,
+             httponly: true,
+             same_site: :lax
     end
 
     def render_with_layout(view_name)
@@ -145,7 +149,13 @@ module TickIt
     end
 
     route do |r|
-      r.redirect_http_to_https if Web.environment == :production
+      # CSP violation reporting endpoint — browser posts here when a policy is violated
+      r.post 'csp-report' do
+        report = JSON.parse(r.body.read) rescue {}
+        $stderr.puts "[CSP] Violation: #{report.inspect}"
+        response.status = 204
+        ''
+      end
 
       @secure_session = SecureSession.new(session)
       @current_session = CurrentSession.new(@secure_session)
