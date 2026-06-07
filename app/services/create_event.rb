@@ -21,7 +21,7 @@ module TickIt
         repeat_weeks: repeat_weeks
       }.compact
 
-      response = http_client.post("#{api_url}/events", json: payload)
+      response = http_client.post("#{api_url}/events", json: TickIt::SignedMessage.sign(payload))
 
       case response.status
       when 201
