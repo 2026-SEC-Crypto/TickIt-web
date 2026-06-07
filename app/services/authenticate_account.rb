@@ -7,9 +7,10 @@ module TickIt
     class AuthenticationFailed < StandardError; end
 
     def call(email:, password:)
+      signed = TickIt::SignedMessage.sign({ email: email, password: password })
       response = http_client.post(
         "#{api_url}/auth/authenticate",
-        json: { email: email, password: password }
+        json: signed
       )
 
       case response.status

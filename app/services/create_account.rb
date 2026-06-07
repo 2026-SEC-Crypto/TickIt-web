@@ -8,9 +8,10 @@ module TickIt
     class InvalidAccount < StandardError; end
 
     def call(email:, password:, role: 'regular', username: nil)
+      signed = TickIt::SignedMessage.sign({ email: email, password: password, role: role, username: username })
       response = http_client.post(
         "#{api_url}/auth/register",
-        json: { email: email, password: password, role: role, username: username }
+        json: signed
       )
 
       case response.status
@@ -28,9 +29,10 @@ module TickIt
     end
 
     def call_with_validation_flag(username:, email:, password: nil, validated: false)
+      signed = TickIt::SignedMessage.sign({ username: username, email: email, password: password, validated: validated })
       response = http_client.post(
         "#{api_url}/auth/register",
-        json: { username: username, email: email, password: password, validated: validated }
+        json: signed
       )
 
       case response.status
