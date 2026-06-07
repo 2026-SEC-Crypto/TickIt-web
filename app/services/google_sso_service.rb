@@ -124,13 +124,24 @@ module TickIt
     end
 
     def authenticate_with_api(id_token:, claims:)
+      # response = http_client.post(
+      #   "#{api_url}/auth/sso",
+      #   json: {
+      #     provider: 'google',
+      #     id_token: id_token,
+      #     claims: claims
+      #   }
+      # )
+      payload = {
+        provider: 'google',
+        id_token: id_token
+      }
+
+      signed_request = TickIt::SignedMessage.sign(payload)
+
       response = http_client.post(
         "#{api_url}/auth/sso",
-        json: {
-          provider: 'google',
-          id_token: id_token,
-          claims: claims
-        }
+        json: signed_request
       )
 
       case response.status
