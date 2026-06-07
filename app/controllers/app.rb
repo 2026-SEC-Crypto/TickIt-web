@@ -10,6 +10,7 @@ require_relative '../services/submit_teacher_application'
 require_relative '../services/fetch_applications'
 require_relative '../services/decide_application'
 require_relative '../services/fetch_my_application'
+require_relative '../lib/signed_message'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
