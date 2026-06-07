@@ -40,7 +40,7 @@ module TickIt
           expire_after: 2_592_000,
           secure: true,
           httponly: true,
-          same_site: :strict
+          same_site: :lax
     else
       plugin :sessions,
              key: '_tickit_web_session',
