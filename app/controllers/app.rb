@@ -11,7 +11,6 @@ require_relative '../services/fetch_applications'
 require_relative '../services/decide_application'
 require_relative '../services/fetch_my_application'
 require_relative '../lib/signed_message'
-require_relative 'security'
 
 module TickIt
   # Web UI — renders Slim pages and talks to TickIt API over HTTP.
@@ -21,6 +20,8 @@ module TickIt
     plugin :halt
     plugin :environments
     plugin :common_logger, $stderr
+
+    require_relative 'security'
 
     SESSION_SECRET = ENV.fetch(
       'SESSION_KEY',
